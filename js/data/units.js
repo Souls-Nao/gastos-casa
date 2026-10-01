@@ -1,4 +1,4 @@
-import { insertRow, listRows, nextOrder, updateRow } from './crud.js';
+import { deleteRow, insertRow, listRows, nextOrder, updateRow } from './crud.js';
 
 export function listUnits() {
   return listRows('units', 'sort_order', 'name');
@@ -10,4 +10,8 @@ export async function createUnit(name) {
 
 export function updateUnit(id, values) {
   return updateRow('units', id, values);
+}
+
+export function deleteUnit(id) {
+  return deleteRow('units', id);
 }

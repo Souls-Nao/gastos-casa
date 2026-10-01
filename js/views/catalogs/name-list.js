@@ -2,10 +2,10 @@ import { h } from '../../core/dom.js';
 import { field, textInput } from '../../ui/field.js';
 import { icon } from '../../ui/icon.js';
 import { hideButton, iconButton, listRow } from '../../ui/list-row.js';
-import { openFormModal } from '../../ui/modal.js';
+import { confirmRemoval, openFormModal } from '../../ui/modal.js';
 import { toast } from '../../ui/toast.js';
 
-export async function nameList(root, { list, create, update, addLabel, editLabel, hiddenLabel, hint }) {
+export async function nameList(root, { list, create, update, remove, removalDetail, addLabel, editLabel, removeLabel, hiddenLabel, hint }) {
   const rows = h('div', { class: 'list' });
 
   async function load() {
@@ -36,6 +36,15 @@ export async function nameList(root, { list, create, update, addLabel, editLabel
         if (item) await update(item.id, { name: value });
         else await create(value);
         await load();
+      },
+      remove: item && {
+        label: removeLabel,
+        async run() {
+          if (!await confirmRemoval(item.name, await removalDetail(item))) return false;
+          await remove(item.id);
+          await load();
+          return true;
+        },
       },
     });
   }

@@ -1,5 +1,5 @@
 import { supabase, unwrap } from '../core/supabase.js';
-import { insertRow, listRows, updateRow } from './crud.js';
+import { deleteRow, insertRow, listRows, updateRow, usageCount } from './crud.js';
 
 export function listCategories() {
   return listRows('categories', 'sort_order', 'name');
@@ -21,6 +21,14 @@ export async function updateCategory(category, values) {
     unwrap(await supabase.from('categories').update({ color: values.color }).eq('parent_id', category.id));
   }
   return saved;
+}
+
+export function categoryUsage(id) {
+  return usageCount('categories', id);
+}
+
+export function deleteCategory(id) {
+  return deleteRow('categories', id);
 }
 
 export async function reorderCategories(ordered) {

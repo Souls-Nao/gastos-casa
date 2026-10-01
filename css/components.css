@@ -37,6 +37,15 @@
   background: var(--danger-hover);
 }
 
+.btn--danger-outline {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.btn--danger-outline:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+
 .btn--ghost {
   border-color: var(--border);
   color: var(--text);
@@ -116,6 +125,10 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-3);
+}
+
+.form__remove {
+  justify-self: start;
 }
 
 .form__error {

@@ -1,11 +1,13 @@
 import { h } from '../../core/dom.js';
 import { money } from '../../core/format.js';
-import { PAYMENT_TYPES, createPaymentMethod, listPaymentMethods, updatePaymentMethod } from '../../data/payment-methods.js';
+import {
+  PAYMENT_TYPES, createPaymentMethod, deletePaymentMethod, listPaymentMethods, paymentMethodUsage, updatePaymentMethod,
+} from '../../data/payment-methods.js';
 import { categoryIcon } from '../../ui/category-icon.js';
 import { field, textInput } from '../../ui/field.js';
 import { icon } from '../../ui/icon.js';
 import { hideButton, iconButton, listRow } from '../../ui/list-row.js';
-import { openFormModal } from '../../ui/modal.js';
+import { confirmRemoval, openFormModal, openModal } from '../../ui/modal.js';
 import { toast } from '../../ui/toast.js';
 
 function describe(method) {
@@ -79,6 +81,24 @@ export default async function paymentMethods(root) {
         if (method) await updatePaymentMethod(method.id, values);
         else await createPaymentMethod(values);
         await load();
+      },
+      remove: method && {
+        label: 'Eliminar método de pago',
+        async run() {
+          const count = await paymentMethodUsage(method.id);
+          if (count) {
+            openModal({
+              title: 'No se puede eliminar',
+              body: h('p', null, `«${method.name}» ya tiene movimientos registrados (${count}). Eliminarlo cambiaría las cuentas de esos meses; si ya no lo usas, ocúltalo.`),
+              actions: [{ label: 'Entendido', value: 'ok', variant: 'primary' }],
+            });
+            return false;
+          }
+          if (!await confirmRemoval(method.name, 'No tiene movimientos registrados.')) return false;
+          await deletePaymentMethod(method.id);
+          await load();
+          return true;
+        },
       },
     });
   }

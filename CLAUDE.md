@@ -43,6 +43,7 @@ Una app web para administrar el dinero de la casa: registrar en qué se gasta, c
 14. **Dashboard** como pantalla principal, con vistas **General / Día / Mes**.
 15. Ideas aceptadas: proyección de fin de mes, comparación mes contra mes, top de productos, categoría "Gastos hormiga", gastos fijos recurrentes con aviso de vencimiento (la luz de CFE es bimestral), alertas al 80% y 100% del presupuesto, presupuesto sugerido por promedio (**solo como sugerencia**), regla 50/30/20 (opcional), app instalable en el celular, **historial de productos** para buscar un producto y solo llenar precio y cantidad, botón "repetir compra", **lista de compras** que se puede ir modificando en la tienda y se convierte en ticket, **foto del ticket opcional**, exportar a CSV/Excel.
 16. Sin fecha límite; se avanza a buen ritmo, bloque por bloque.
+17. **Eliminar (01/10/2026):** todo lo que el usuario puede crear también se puede **eliminar**, además de ocultar (categorías, subcategorías, tiendas, métodos de pago, unidades, y en los bloques siguientes tickets, ingresos, presupuestos, pagos, metas, listas…). Siempre con confirmación que diga qué se pierde. Única excepción: un método de pago que ya tiene movimientos no se elimina (cambiaría las cuentas de meses pasados); solo se oculta.
 
 ## Arquitectura (decidida)
 
@@ -155,7 +156,7 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
   - [x] Login probado por el usuario en Pages el 01/10/2026 (Claude no escribe la contraseña)
   - **Pospuesto por decisión del usuario (01/10/2026), hasta nuevo aviso:** apagar en Authentication → Sign In / Providers **Allow new users to sign up** y **Allow anonymous sign-ins**. No insistas en cada bloque; recuérdalo en el bloque 16 (revisión de seguridad) o si él lo menciona. Se comprueba en `/auth/v1/settings`: `disable_signup` y `external.anonymous_users`
 - [x] Bloque 3 — Núcleo. Probado en local en escritorio (1280px) y móvil (375px), tema claro y oscuro: login, menú lateral, barra inferior, router, vistas Inicio / Más / pendientes, modal y toast. Las vistas con sesión se probaron montando el shell a mano y simulando las respuestas RPC; **el flujo real con sesión (entrar, recargar y seguir dentro, cerrar sesión) lo prueba el usuario en Pages**
-- [x] Bloque 4 — Catálogos. `#/catalogos?tab=categorias|tiendas|pagos|unidades` (categorías además con `&kind=expense|income`). Nada se borra: todo se oculta/muestra. Tabla nueva `units` (migración `003_units.sql`, aplicada; `seed_defaults` ahora también siembra 12 unidades). Probado en local con el arnés de pruebas en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
+- [x] Bloque 4 — Catálogos. `#/catalogos?tab=categorias|tiendas|pagos|unidades` (categorías además con `&kind=expense|income`). Todo se puede ocultar/mostrar y eliminar (botón **Eliminar** dentro del formulario de edición; RPC `catalog_usage(p_table, p_id)` de la migración `004_catalog_usage.sql` cuenta los registros afectados). Tabla nueva `units` (migración `003_units.sql`, aplicada; `seed_defaults` ahora también siembra 12 unidades). Probado en local con el arnés de pruebas en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
 - [ ] Bloque 5 — Captura de tickets ← **siguiente**
 - [ ] Bloque 6 — PWA y offline
 - [ ] Bloque 7 — Historial
@@ -193,7 +194,9 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 
 ### Módulos de catálogos (bloque 4)
 
-- `data/crud.js`: `listRows(tabla, ...orden)`, `insertRow`, `updateRow` (traducen el error de nombre duplicado), `nextOrder(filas)`.
+- `data/crud.js`: `listRows(tabla, ...orden)`, `insertRow`, `updateRow` (traducen el error de nombre duplicado), `deleteRow`, `usageCount(tabla, id)`, `nextOrder(filas)`. Cada entidad expone además `delete…` y, si aplica, `…Usage(id)`.
+- Al eliminar: una categoría arrastra sus subcategorías y presupuestos, y deja sin categoría los artículos/ingresos que la usaban; una tienda deja sus tickets sin tienda. La UI debe mostrar "Sin categoría" / "Sin tienda" cuando el dato es nulo.
+- `ui/modal.js`: `openModal` devuelve `{ close }` y acepta `onClose(valor)`; no dependas del evento `close` del `<dialog>` (Chromium no lo dispara con la página oculta). `openFormModal` acepta `remove: { label, run }` (`run` devuelve `true` si eliminó) y `confirmRemoval(nombre, detalle)` → `Promise<boolean>` es la confirmación estándar para eliminar.
 - `data/categories.js`: `listCategories`, `categoryTree(filas, kind)` (categorías con `children`), `createCategory`, `updateCategory(categoria, cambios)` (propaga el color a las subcategorías), `reorderCategories(ordenadas)`. Las subcategorías no tienen icono y heredan el color.
 - `data/stores.js`: `listStores`, `createStore(nombre)`, `updateStore`. `data/units.js`: `listUnits`, `createUnit(nombre)`, `updateUnit`. `ticket_items.unit` sigue siendo texto: `units` solo alimenta el selector.
 - `data/payment-methods.js`: `PAYMENT_TYPES` (`label`, `icon` por tipo), `listPaymentMethods`, `createPaymentMethod`, `updatePaymentMethod` (ambas llaman `ensureMonth` para refrescar los pagos de tarjeta).

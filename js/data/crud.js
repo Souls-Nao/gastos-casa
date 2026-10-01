@@ -1,4 +1,4 @@
-import { supabase, unwrap } from '../core/supabase.js';
+import { rpc, supabase, unwrap } from '../core/supabase.js';
 
 function translate(error) {
   return error.code === '23505' ? new Error('Ya existe un registro con ese nombre.') : error;
@@ -20,6 +20,14 @@ export async function updateRow(table, id, values) {
   const { data, error } = await supabase.from(table).update(values).eq('id', id).select().single();
   if (error) throw translate(error);
   return data;
+}
+
+export async function deleteRow(table, id) {
+  unwrap(await supabase.from(table).delete().eq('id', id));
+}
+
+export function usageCount(table, id) {
+  return rpc('catalog_usage', { p_table: table, p_id: id });
 }
 
 export function nextOrder(rows) {

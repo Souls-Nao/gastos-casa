@@ -1,11 +1,13 @@
 import { h } from '../../core/dom.js';
-import { categoryTree, createCategory, listCategories, reorderCategories, updateCategory } from '../../data/categories.js';
+import {
+  categoryTree, categoryUsage, createCategory, deleteCategory, listCategories, reorderCategories, updateCategory,
+} from '../../data/categories.js';
 import { nextOrder } from '../../data/crud.js';
 import { categoryIcon } from '../../ui/category-icon.js';
 import { field, fieldGroup, textInput } from '../../ui/field.js';
 import { icon } from '../../ui/icon.js';
 import { hideButton, iconButton, listRow } from '../../ui/list-row.js';
-import { openFormModal } from '../../ui/modal.js';
+import { confirmRemoval, openFormModal } from '../../ui/modal.js';
 import { colorPicker, iconPicker } from '../../ui/pickers.js';
 import { tabs } from '../../ui/tabs.js';
 import { toast } from '../../ui/toast.js';
@@ -64,6 +66,24 @@ export default async function categories(root, query) {
     return textInput({ required: true, maxLength: 60, autofocus: true, value: item?.name ?? '' });
   }
 
+  function removal(item, label) {
+    return item && {
+      label,
+      async run() {
+        const count = await categoryUsage(item.id);
+        const detail = [
+          item.children?.length ? `Se eliminará junto con ${countLabel(item.children.length)}.` : null,
+          count ? `Registros que quedarán sin categoría: ${count}.` : 'No se ha usado en ningún registro.',
+          'También se borran sus presupuestos.',
+        ].filter(Boolean).join(' ');
+        if (!await confirmRemoval(item.name, detail)) return false;
+        await deleteCategory(item.id);
+        await load();
+        return true;
+      },
+    };
+  }
+
   function editCategory(item) {
     const name = nameInput(item);
     const color = colorPicker(item?.color ?? undefined);
@@ -77,6 +97,7 @@ export default async function categories(root, query) {
         else await createCategory({ ...values, kind, sort_order: nextOrder(tree) });
         await load();
       },
+      remove: removal(item, 'Eliminar categoría'),
     });
   }
 
@@ -100,6 +121,7 @@ export default async function categories(root, query) {
         open.add(parent.id);
         await load();
       },
+      remove: removal(item, 'Eliminar subcategoría'),
     });
   }
 

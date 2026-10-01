@@ -1,5 +1,5 @@
 import { getState } from '../core/store.js';
-import { insertRow, listRows, nextOrder, updateRow } from './crud.js';
+import { deleteRow, insertRow, listRows, nextOrder, updateRow, usageCount } from './crud.js';
 import { ensureMonth } from './months.js';
 
 export const PAYMENT_TYPES = {
@@ -24,4 +24,13 @@ export async function updatePaymentMethod(id, values) {
   const saved = await updateRow('payment_methods', id, values);
   await ensureMonth(getState().month);
   return saved;
+}
+
+export function paymentMethodUsage(id) {
+  return usageCount('payment_methods', id);
+}
+
+export async function deletePaymentMethod(id) {
+  await deleteRow('payment_methods', id);
+  await ensureMonth(getState().month);
 }
