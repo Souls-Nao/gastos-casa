@@ -3,28 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f3f5f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1418" media="(prefers-color-scheme: dark)">
   <title>Gastos de Casa</title>
+  <link rel="icon" href="assets/icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/views/login.css">
+  <link rel="stylesheet" href="css/views/home.css">
 </head>
 <body>
-  <main class="card">
-    <h1>Gastos de Casa</h1>
-    <p id="status" class="status" role="status" data-tone="info">Conectando…</p>
-    <form id="login" hidden>
-      <label>Correo
-        <input id="email" type="email" autocomplete="username" required>
-      </label>
-      <label>Contraseña
-        <input id="password" type="password" autocomplete="current-password" required>
-      </label>
-      <button type="submit">Entrar</button>
-    </form>
-    <section id="session" hidden>
-      <dl id="checks"></dl>
-      <button id="logout" type="button">Cerrar sesión</button>
-    </section>
-  </main>
+  <div id="app">
+    <p class="boot">Cargando…</p>
+  </div>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>

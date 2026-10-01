@@ -144,10 +144,9 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 
 ## Estado
 
-- [x] Bloque 1 — Base de datos (`supabase/schema.sql`, probado localmente; **aún no aplicado en Supabase**)
+- [x] Bloque 1 — Base de datos (`supabase/schema.sql`, aplicado en Supabase en el bloque 2)
 - [x] Bloque 2 — Puesta en marcha
   - [x] Repo público `Souls-Nao/gastos-casa` (rama `main`, commits con correo noreply de GitHub) y GitHub Pages activo en `https://souls-nao.github.io/gastos-casa/`
-  - [x] Página de prueba (`index.html`, `css/base.css`, `js/app.js`, `js/core/supabase.js`): login, `seed_defaults`, `ensure_month`, conteos y `month_summary`
   - [x] Servidor local: `.claude/launch.json` (configuración `gastos`, puerto 8080; `.claude/` no se sube al repo)
   - [x] Proyecto Supabase creado: ref `oyawbeizugnkvvyqemcn` (`https://oyawbeizugnkvvyqemcn.supabase.co`), Postgres 17. Claude se conecta con el **conector Supabase** de la app de escritorio (el CLI `claude` y Node no están instalados)
   - [x] `schema.sql` aplicado por el conector (migraciones `schema_01_tables` … `schema_04_security_storage`) y `supabase/migrations/002_revoke_rls_auto_enable.sql`. Verificado: 18 tablas con RLS, 5 vistas `security_invoker`, `anon` sin acceso, bucket `tickets` privado, y prueba de humo como `authenticated` (seed, `ensure_month`, ticket con descuento, `v_spending`, `month_summary`) revertida
@@ -155,8 +154,8 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
   - [x] `js/config.js` con Project URL y publishable key; la página muestra el formulario de login en local
   - [x] Login probado por el usuario en Pages el 01/10/2026 (Claude no escribe la contraseña)
   - **Pospuesto por decisión del usuario (01/10/2026), hasta nuevo aviso:** apagar en Authentication → Sign In / Providers **Allow new users to sign up** y **Allow anonymous sign-ins**. No insistas en cada bloque; recuérdalo en el bloque 16 (revisión de seguridad) o si él lo menciona. Se comprueba en `/auth/v1/settings`: `disable_signup` y `external.anonymous_users`
-- [ ] Bloque 3 — Núcleo ← **siguiente** (reemplaza la página de prueba: `index.html`, `css/base.css` y `js/app.js` se reescriben; `js/core/supabase.js` exporta `supabase` y `configured`)
-- [ ] Bloque 4 — Catálogos
+- [x] Bloque 3 — Núcleo. Probado en local en escritorio (1280px) y móvil (375px), tema claro y oscuro: login, menú lateral, barra inferior, router, vistas Inicio / Más / pendientes, modal y toast. Las vistas con sesión se probaron montando el shell a mano y simulando las respuestas RPC; **el flujo real con sesión (entrar, recargar y seguir dentro, cerrar sesión) lo prueba el usuario en Pages**
+- [ ] Bloque 4 — Catálogos ← **siguiente**
 - [ ] Bloque 5 — Captura de tickets
 - [ ] Bloque 6 — PWA y offline
 - [ ] Bloque 7 — Historial
@@ -175,7 +174,19 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 - Migraciones: guarda el SQL en `supabase/migrations/NNN_nombre.sql` y aplícalo con el conector Supabase (`apply_migration`, proyecto `oyawbeizugnkvvyqemcn`). Toda función nueva en `public` necesita `revoke execute ... from anon, public` y `grant execute ... to authenticated`.
 - Para probar SQL como el usuario sin dejar datos: bloque `do $$ … $$` que fija `request.jwt.claims`, hace `set local role authenticated` y termina con `raise exception` para revertir.
 - Pendiente para el bloque 16: fijar `search_path` en las 14 funciones (aviso del advisor de seguridad de Supabase).
-
-- Llama `seed_defaults()` y después `ensure_month(current_date)` justo después del login.
 - No envíes `total` al insertar o actualizar tickets.
 - Para el autocompletado de productos usa `v_product_stats` (`last_price`, `unit`, `category_id`, `last_store_id`).
+
+### Módulos del núcleo (bloque 3)
+
+- Librerías fijadas: `@supabase/supabase-js@2.117.2` (en `core/supabase.js`) y `lucide@1.49.0` (en `ui/icon.js`). Son los únicos archivos que importan del CDN.
+- `js/sections.js`: lista única de secciones (`path`, `label`, `short`, `icon`, `tab` = posición en la barra inferior, `primary`, `mobileOnly`, `block`, `view`). Al construir una sección: cambia su `view` por `() => import('./views/x.js')` y quita `block`. Las rutas aceptan parámetros (`/ticket/:id`).
+- Contrato de una vista: `export default function (root, { route, params, query })`; puede ser `async` y puede devolver una función de limpieza. `root` es un `div.view` propio (grid con separación).
+- `core/supabase.js`: `supabase`, `unwrap(resultado)`, `rpc(nombre, args)` (lanzan el error). `core/auth.js`: `onAuthChange`, `signIn`, `signOut` (solo cierra este dispositivo).
+- `core/events.js`: `on(nombre, fn)` (devuelve la función para dejar de escuchar), `emit(nombre, detalle)`. Eventos: `auth:logout` (pide confirmar y cerrar sesión), `state:<clave>`.
+- `core/store.js`: `getState()`, `setState(cambios)`, `watch(clave, fn)`. Claves: `user`, `month` (primer día del mes seleccionado, `aaaa-mm-01`).
+- `core/format.js`: `money`, `todayISO`, `monthStart`, `addMonths`, `formatDate` (dd/mm/aaaa), `monthLabel`. `core/dom.js`: `h(tag, props, ...hijos)` (`onclick` etc. registran eventos; lo que no es propiedad del elemento va como atributo).
+- `data/account.js`: `seedDefaults`. `data/months.js`: `ensureMonth`, `getMonthSummary`, `selectMonth(mes)` (asegura el mes y actualiza `month` en el store).
+- `ui/`: `icon(nombre, tamaño)`, `toast(mensaje, 'info' | 'error')`, `openModal({ title, body, actions })` (devuelve el `<dialog>`; `actions`: `{ label, value, variant }`), `confirmDialog({ title, message, confirmLabel, danger })` → `Promise<boolean>`, `createMonthNav(onShift)` → `{ element, setMonth }`, `createShell`.
+- CSS: `tokens.css` (colores claro/oscuro, espacios, radios), `components.css` (`btn` + `btn--primary/ghost/danger/icon`, `card`, `field`, `list`, `empty`, `month-nav`, `modal`, `toast`), `layout.css` (shell), `views/*.css` (cada archivo nuevo se enlaza en `index.html`).
+- Pruebas: Claude no escribe la contraseña y el usuario no ve el panel de navegador de la app. Para probar vistas con sesión en local: desde la consola de la página monta `createShell` + `startRouter` con un usuario falso en el store y sustituye `window.fetch` para responder las llamadas a `/rest/v1/`. La prueba con datos reales la hace el usuario en Pages.

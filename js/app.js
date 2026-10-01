@@ -1,102 +1,70 @@
-import { supabase, configured } from './core/supabase.js';
+import { onAuthChange, signOut } from './core/auth.js';
+import { h } from './core/dom.js';
+import { on } from './core/events.js';
+import { formatDate, monthStart, todayISO } from './core/format.js';
+import { startRouter, stopRouter } from './core/router.js';
+import { setState } from './core/store.js';
+import { seedDefaults } from './data/account.js';
+import { ensureMonth } from './data/months.js';
+import { sections } from './sections.js';
+import { confirmDialog } from './ui/modal.js';
+import { createShell } from './ui/shell.js';
+import { toast } from './ui/toast.js';
+import login from './views/login.js';
 
-const $ = (id) => document.getElementById(id);
-const status = $('status');
-const login = $('login');
-const session = $('session');
-const checks = $('checks');
+const app = document.getElementById('app');
+let currentUserId;
 
-const money = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
-
-function setStatus(text, tone = 'info') {
-  status.textContent = text;
-  status.dataset.tone = tone;
-}
-
-function today() {
-  const d = new Date();
-  const pad = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
-function addCheck(label, value) {
-  const dt = document.createElement('dt');
-  const dd = document.createElement('dd');
-  dt.textContent = label;
-  dd.textContent = value;
-  checks.append(dt, dd);
-}
-
-async function rpc(name, args) {
-  const { data, error } = await supabase.rpc(name, args);
-  if (error) throw error;
-  return data;
-}
-
-async function count(table) {
-  const { count: total, error } = await supabase.from(table).select('*', { count: 'exact', head: true });
-  if (error) throw error;
-  return total;
-}
-
-async function showSession(user) {
-  login.hidden = true;
-  session.hidden = false;
-  checks.replaceChildren();
-  setStatus(`Sesión iniciada: ${user.email}`, 'ok');
+async function enter(user) {
+  const today = todayISO();
+  setState({ user, month: monthStart(today) });
   try {
-    await rpc('seed_defaults');
-    await rpc('ensure_month', { p_month: today() });
-    const [categories, methods, stores, summary] = await Promise.all([
-      count('categories'),
-      count('payment_methods'),
-      count('stores'),
-      rpc('month_summary', { p_month: today() }),
-    ]);
-    addCheck('Categorías', categories);
-    addCheck('Métodos de pago', methods);
-    addCheck('Tiendas', stores);
-    addCheck('Disponible del mes', money.format(summary.available));
+    await seedDefaults();
+    await ensureMonth(today);
   } catch (error) {
-    setStatus(`La base de datos respondió con un error: ${error.message}`, 'error');
+    toast(`No se pudo preparar el mes: ${error.message}`, 'error');
   }
-}
-
-function showLogin() {
-  session.hidden = true;
-  login.hidden = false;
-  setStatus('Conexión lista. Inicia sesión.', 'info');
-}
-
-async function render() {
-  const { data, error } = await supabase.auth.getSession();
-  if (error) return setStatus(`No se pudo conectar: ${error.message}`, 'error');
-  if (data.session) await showSession(data.session.user);
-  else showLogin();
-}
-
-login.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const button = login.querySelector('button');
-  button.disabled = true;
-  setStatus('Entrando…', 'info');
-  const { error } = await supabase.auth.signInWithPassword({
-    email: $('email').value.trim(),
-    password: $('password').value,
+  if (currentUserId !== user.id) return;
+  const shell = createShell({ sections, email: user.email, date: formatDate(today) });
+  app.replaceChildren(shell.element);
+  startRouter({
+    routes: sections,
+    outlet: shell.outlet,
+    onNavigate: shell.setActive,
+    onError(error, root) {
+      root.replaceChildren(h('p', { class: 'empty__text' }, 'No se pudo abrir esta sección.'));
+      toast(error.message, 'error');
+    },
   });
-  button.disabled = false;
-  if (error) {
-    const wrong = error.code === 'invalid_credentials';
-    return setStatus(wrong ? 'Correo o contraseña incorrectos.' : `No se pudo entrar: ${error.message}`, 'error');
+}
+
+function leave() {
+  stopRouter();
+  setState({ user: null, month: null });
+  document.title = 'Gastos de Casa';
+  login(app);
+}
+
+onAuthChange((user) => {
+  const id = user?.id ?? null;
+  if (id === currentUserId) return;
+  currentUserId = id;
+  if (user) enter(user);
+  else leave();
+});
+
+on('auth:logout', async () => {
+  const confirmed = await confirmDialog({
+    title: 'Cerrar sesión',
+    message: 'Tendrás que volver a escribir el correo y la contraseña en este dispositivo.',
+    confirmLabel: 'Cerrar sesión',
+    danger: true,
+  });
+  if (!confirmed) return;
+  try {
+    await signOut();
+    toast('Sesión cerrada.');
+  } catch (error) {
+    toast(`No se pudo cerrar la sesión: ${error.message}`, 'error');
   }
-  login.reset();
-  await render();
 });
-
-$('logout').addEventListener('click', async () => {
-  await supabase.auth.signOut();
-  showLogin();
-});
-
-if (configured) render();
-else setStatus('Falta configurar la conexión con Supabase (js/config.js).', 'error');
