@@ -7,7 +7,7 @@ export const sections = [
   { path: '/ticket/:id', label: 'Editar ticket', icon: 'receipt-text', parent: '/ticket', hidden: true, view: ticket },
   { path: '/historial', label: 'Historial', icon: 'receipt-text', view: () => import('./views/history.js') },
   { path: '/calendario', label: 'Calendario', icon: 'calendar-days', tab: 2, view: () => import('./views/calendar.js') },
-  { path: '/ingresos', label: 'Ingresos', icon: 'wallet', block: 9, view: pending },
+  { path: '/ingresos', label: 'Ingresos', icon: 'wallet', view: () => import('./views/incomes.js') },
   { path: '/presupuestos', label: 'Presupuestos', icon: 'chart-pie', block: 10, view: pending },
   { path: '/pagos', label: 'Pagos del mes', icon: 'credit-card', block: 11, view: pending },
   { path: '/ahorro', label: 'Ahorro y reserva', icon: 'piggy-bank', block: 12, view: pending },

@@ -161,8 +161,8 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 - [x] Bloque 6 — PWA y offline. `manifest.webmanifest`, iconos PNG en `assets/icons/`, `sw.js`, caché de lectura y cola de pendientes en IndexedDB, sincronización automática, indicador en la barra superior, botón "Instalar la app". Probado en local: la app abre con el servidor apagado, y con el arnés se probó guardar/editar un ticket sin conexión, enviarlo al volver y el caso de rechazo del servidor. **Falta la prueba real en el celular del usuario** (instalar, modo avión)
 - [x] Bloque 7 — Historial. `#/historial` (tickets con filtros en la URL: `desde`, `hasta`, `categoria`, `tienda`, `metodo`, `q`) y `#/historial?tab=productos` (buscador, orden, detalle con precio en el tiempo, comparación por tienda y compras). RPC `search_tickets(p jsonb)` (migración `006_search_tickets.sql`, aplicada y probada; usa `unaccent`). Tocar un ticket en Inicio o Historial abre su detalle (ventana) con **Repetir compra** y **Editar**. Probado en local con el arnés en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
 - [x] Bloque 8 — Calendario. `#/calendario` (`?dia=aaaa-mm-dd` guarda el día elegido): mes con total por día, cuatro niveles de color por rango entre los días con gasto, y detalle del día (por categoría y subcategoría, tickets, artículos). RPC `day_detail(p_day)` (migración `007_day_detail.sql`, aplicada y probada). Probado en local con el arnés en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
-- [ ] Bloque 9 — Ingresos ← **siguiente**
-- [ ] Bloque 10 — Presupuestos
+- [x] Bloque 9 — Ingresos. `#/ingresos`: listado del mes, total, desglose por categoría, alta/edición/eliminación en ventana. Sin migración (usa la tabla `incomes`). Requiere conexión para guardar. Probado en local con el arnés y el guardado directo en la base (revertido); la prueba con datos reales la hace el usuario en Pages
+- [ ] Bloque 10 — Presupuestos ← **siguiente**
 - [ ] Bloque 11 — Pagos del mes
 - [ ] Bloque 12 — Ahorro y reserva
 - [ ] Bloque 13 — Dashboard
@@ -191,6 +191,13 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 - `ui/`: `icon(nombre, tamaño)`, `toast(mensaje, 'info' | 'error')`, `openModal({ title, body, actions })` (devuelve el `<dialog>`; `actions`: `{ label, value, variant }`), `confirmDialog({ title, message, confirmLabel, danger })` → `Promise<boolean>`, `createMonthNav(onShift)` → `{ element, setMonth }`, `createShell`.
 - CSS: `tokens.css` (colores claro/oscuro, espacios, radios), `components.css` (`btn` + `btn--primary/ghost/danger/icon`, `card`, `field`, `list`, `empty`, `month-nav`, `modal`, `toast`), `layout.css` (shell), `views/*.css` (cada archivo nuevo se enlaza en `index.html`).
 - Pruebas: Claude no escribe la contraseña y el usuario no ve el panel de navegador de la app. Para probar vistas con sesión en local existe `.claude/dev-harness.js` (no se sube al repo; si falta, hay que recrearlo): simula PostgREST en memoria (`db`, `calls`, `rpc`) y monta el shell. Uso desde la consola de `http://localhost:8080/index.html`: `const hx = await import('/.claude/dev-harness.js'); window.hx = hx; await hx.mount('#/catalogos')`. Para tablas o RPC nuevos, agrega datos a `hx.db` / `hx.rpc`. La prueba con datos reales la hace el usuario en Pages.
+
+### Ingresos (bloque 9)
+
+- `data/incomes.js`: `listIncomes(mes)`, `saveIncome(ingreso)` (upsert por `id` generado en el cliente; devuelve la fila), `deleteIncome(id)`. No se usa `incomes.note`. La categoría es obligatoria y el método ("Recibido en") opcional, sin tarjetas de crédito.
+- Patrón de vista por mes con formulario en ventana (`views/incomes.js`): `createMonthNav` + `selectMonth`, `load(mes)` que vuelve a pintar todo, `watch('month')` y `on('data:changed')`, y `openFormModal` con `remove`. Sirve de modelo para Pagos y Ahorro.
+- CSS: `row--padded` (fila con margen derecho, para filas sin botones).
+- El arnés ya trata un POST con `id` existente como actualización (upsert) y tiene la tabla `incomes`.
 
 ### Calendario (bloque 8)
 

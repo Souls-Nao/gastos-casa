@@ -113,10 +113,6 @@
   border-top: 1px solid var(--border);
 }
 
-.day__category .row {
-  padding-right: var(--space-4);
-}
-
 .day__sub {
   display: flex;
   justify-content: space-between;

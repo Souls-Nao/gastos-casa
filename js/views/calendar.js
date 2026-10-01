@@ -66,7 +66,7 @@ export default function calendar(root, { query }) {
       ...(tickets.length ? [
         h('h3', { class: 'detail__heading' }, 'Por categoría'),
         h('div', { class: 'list' }, groups.map((group) => h('div', { class: 'day__category' },
-          h('div', { class: 'row' },
+          h('div', { class: 'row row--padded' },
             categoryIcon(group.category, 36),
             h('div', { class: 'row__text' },
               h('span', { class: 'row__title' }, group.category.name),
