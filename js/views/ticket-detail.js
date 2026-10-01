@@ -3,6 +3,7 @@ import { formatDate, money, monthLabel } from '../core/format.js';
 import { navigate } from '../core/router.js';
 import { listCategories } from '../data/categories.js';
 import { listPaymentMethods } from '../data/payment-methods.js';
+import { ticketPhotoUrl } from '../data/photos.js';
 import { listStores } from '../data/stores.js';
 import { getTicket, itemAmount, ticketTotals } from '../data/tickets.js';
 import { openModal } from '../ui/modal.js';
@@ -33,6 +34,14 @@ export async function openTicketDetail(id) {
     ticket.msi ? `${ticket.msi.months} meses sin intereses desde ${monthLabel(ticket.msi.first_month).toLowerCase()}` : null,
   ].filter(Boolean);
 
+  const photo = h('div', { class: 'detail__photo' });
+  if (ticket.photo_path) {
+    ticketPhotoUrl(ticket.photo_path)
+      .then((url) => photo.append(h('a', { href: url, target: '_blank', rel: 'noopener' },
+        h('img', { src: url, alt: 'Foto del ticket', loading: 'lazy' }))))
+      .catch(() => photo.append(h('span', { class: 'field__hint' }, 'La foto no se puede mostrar sin conexión.')));
+  }
+
   openModal({
     title: name(stores, ticket.store_id) ?? 'Sin tienda',
     body: h('div', { class: 'detail' },
@@ -46,7 +55,8 @@ export async function openTicketDetail(id) {
           h('strong', { class: 'money' }, money(itemAmount(item)))))),
       ticket.discount ? [line('Subtotal', money(subtotal)), line('Descuento', `−${money(ticket.discount)}`)] : null,
       line('Total', money(total), true),
-      ticket.note ? h('p', { class: 'detail__note' }, ticket.note) : null),
+      ticket.note ? h('p', { class: 'detail__note' }, ticket.note) : null,
+      ticket.photo_path ? photo : null),
     actions: [
       { label: 'Repetir compra', value: `/ticket?repetir=${ticket.id}` },
       { label: 'Editar', value: `/ticket/${ticket.id}`, variant: 'primary' },

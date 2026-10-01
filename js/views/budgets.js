@@ -4,7 +4,7 @@ import { addMonths, money, monthLabel } from '../core/format.js';
 import { getState, watch } from '../core/store.js';
 import { budgetStatus, getBudgetOverview, saveMonthPlan, setBudget } from '../data/budgets.js';
 import { categoryTree, listCategories } from '../data/categories.js';
-import { selectMonth } from '../data/months.js';
+import { getMonthSummary, selectMonth } from '../data/months.js';
 import { barsLegend, budgetBars, statusMeter } from '../ui/budget-bars.js';
 import { categoryIcon } from '../ui/category-icon.js';
 import { field, selectInput, textInput } from '../ui/field.js';
@@ -13,6 +13,7 @@ import { iconButton } from '../ui/list-row.js';
 import { confirmRemoval, openFormModal } from '../ui/modal.js';
 import { createMonthNav } from '../ui/month-nav.js';
 import { toast } from '../ui/toast.js';
+import { ruleCard } from './budgets-rule.js';
 
 const EMPTY = { budget: null, q1_budget: null, spent: 0, spent_q1: 0, previous: 0, average: 0 };
 const DEFAULT_PLAN = { total_budget: 0, opening_balance: 0, split_mode: 'month' };
@@ -42,6 +43,7 @@ export default function budgets(root) {
   let rows = new Map();
   let tree = [];
   let uncategorized = 0;
+  let summary = { incomes: 0, savings_in: 0, reserve_in: 0 };
 
   const nav = createMonthNav(async (step) => {
     try {
@@ -201,6 +203,7 @@ export default function budgets(root) {
         plan.total_budget && unassigned ? h('p', { class: 'field__hint' }, unassigned > 0
           ? `Quedan ${money(unassigned)} del plan sin asignar a una categoría.`
           : `Las categorías suman ${money(-unassigned)} más que el total del plan.`) : null),
+      ruleCard({ categories: tree, spentOf: (category) => rowOf(category).spent, summary, reload: () => load(getState().month) }),
       alerts.length ? h('div', { class: 'notice notice--warning' },
         icon('triangle-alert', 18),
         h('span', null, `${alerts.length === 1 ? '1 categoría en alerta' : `${alerts.length} categorías en alerta`}: ${alerts.map((entry) =>
@@ -225,11 +228,12 @@ export default function budgets(root) {
   async function load(month) {
     nav.setMonth(month);
     try {
-      const [overview, categories] = await Promise.all([getBudgetOverview(month), listCategories()]);
+      const [overview, categories, monthSummary] = await Promise.all([getBudgetOverview(month), listCategories(), getMonthSummary(month)]);
       if (month !== getState().month) return;
       plan = overview.plan ?? DEFAULT_PLAN;
       rows = new Map(overview.rows.map((row) => [row.category_id, row]));
       uncategorized = overview.uncategorized;
+      summary = monthSummary;
       const relevant = (category) => {
         const row = rowOf(category);
         return !category.hidden || row.budget || row.spent || row.previous;

@@ -4,10 +4,12 @@ import { getState } from '../core/store.js';
 import { rpc } from '../core/supabase.js';
 import { deleteRow } from './crud.js';
 import { ensureMonth } from './months.js';
+import { deleteTicketWithPhoto, uploadTicketPhoto } from './photos.js';
 
 const executors = {
   save_ticket: (payload) => rpc('save_ticket', { p: payload }),
-  delete_ticket: (payload) => deleteRow('tickets', payload.id),
+  delete_ticket: deleteTicketWithPhoto,
+  upload_photo: uploadTicketPhoto,
   save_list: (payload) => rpc('save_shopping_list', { p: payload }),
   delete_list: (payload) => deleteRow('shopping_lists', payload.id),
 };

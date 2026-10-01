@@ -1,13 +1,15 @@
-import { h } from '../core/dom.js';
+import { fill, h } from '../core/dom.js';
+import { compressImage } from '../core/image.js';
 import { addMonths, money, monthLabel, monthStart, normalize, nowTime, todayISO } from '../core/format.js';
 import { readLocal, removeLocal, writeLocal } from '../core/local.js';
 import { navigate } from '../core/router.js';
 import { categoryTree, listCategories } from '../data/categories.js';
 import { listPaymentMethods } from '../data/payment-methods.js';
+import { ticketPhotoUrl } from '../data/photos.js';
 import { listProducts } from '../data/products.js';
 import { finishShoppingList, itemsToBuy, listShoppingLists } from '../data/shopping.js';
 import { createStore, listStores } from '../data/stores.js';
-import { deleteTicket, getTicket, itemAmount, saveTicket, ticketTotals } from '../data/tickets.js';
+import { clearTicketPhoto, deleteTicket, getTicket, itemAmount, saveTicket, saveTicketPhoto, ticketTotals } from '../data/tickets.js';
 import { listUnits } from '../data/units.js';
 import { autocomplete } from '../ui/autocomplete.js';
 import { categorySelect } from '../ui/category-select.js';
@@ -69,6 +71,7 @@ export default async function ticket(root, { params, query }) {
       purchased_at: nowTime(),
       discount: 0,
       note: '',
+      photo_path: null,
       msi: null,
       items: source.items.map((item) => ({ ...item, id: crypto.randomUUID() })),
     };
@@ -85,6 +88,7 @@ export default async function ticket(root, { params, query }) {
       payment_method_id: (visibleMethods.find((method) => method.id === last) ?? visibleMethods[0])?.id ?? null,
       discount: 0,
       note: '',
+      photo_path: null,
       items: bought.length
         ? bought.map(({ name, category_id, quantity, unit, unit_price }) => ({ id: crypto.randomUUID(), name, category_id, quantity, unit, unit_price }))
         : [newItem()],
@@ -346,6 +350,49 @@ export default async function ticket(root, { params, query }) {
     refresh();
   });
 
+  const photoInput = h('input', { class: 'visually-hidden', type: 'file', accept: 'image/*' });
+  const photoBox = h('div', { class: 'ticket__photo' });
+  let photoBlob = null;
+  let photoRemoved = false;
+
+  function showPhoto(url, message) {
+    fill(photoBox,
+      url ? h('img', { class: 'ticket__photo-image', src: url, alt: 'Foto del ticket' }) : null,
+      message ? h('span', { class: 'field__hint' }, message) : null,
+      h('label', { class: 'btn btn--ghost' }, photoInput, icon('camera', 18), url || message ? 'Cambiar foto' : 'Agregar foto'),
+      url || message ? h('button', {
+        class: 'btn btn--ghost',
+        type: 'button',
+        onclick() {
+          photoBlob = null;
+          photoRemoved = true;
+          showPhoto(null);
+        },
+      }, icon('trash-2', 18), 'Quitar foto') : null);
+  }
+
+  photoInput.addEventListener('change', async () => {
+    const [file] = photoInput.files;
+    if (!file) return;
+    try {
+      photoBlob = await compressImage(file);
+      photoRemoved = false;
+      showPhoto(URL.createObjectURL(photoBlob));
+    } catch {
+      toast('No se pudo leer esa imagen.', 'error');
+    }
+    photoInput.value = '';
+  });
+
+  if (editing && state.photo_path) {
+    showPhoto(null, 'Cargando la foto guardada…');
+    ticketPhotoUrl(state.photo_path)
+      .then((url) => showPhoto(url))
+      .catch(() => showPhoto(null, 'Este ticket tiene una foto guardada; no se puede mostrar sin conexión.'));
+  } else {
+    showPhoto(null);
+  }
+
   async function submit(event) {
     event.preventDefault();
     const filled = state.items.filter((item) => !isBlank(item));
@@ -369,6 +416,8 @@ export default async function ticket(root, { params, query }) {
       if (state.payment_method_id) writeLocal(METHOD_KEY, state.payment_method_id);
       if (!editing) removeLocal(DRAFT_KEY);
       if (shoppingList) await finishShoppingList(shoppingList, bought, state.id);
+      if (photoBlob) await saveTicketPhoto(state, photoBlob);
+      else if (photoRemoved) await clearTicketPhoto(state);
       toast(sent
         ? `Ticket guardado: ${money(total)}`
         : `Sin conexión: el ticket de ${money(total)} quedó guardado en este dispositivo y se enviará solo al volver internet.`);
@@ -410,7 +459,7 @@ export default async function ticket(root, { params, query }) {
         const place = stores.find((row) => row.id === state.store_id)?.name;
         if (!await confirmRemoval(place ? `Ticket de ${place}` : 'Ticket', 'Se borrará con todos sus artículos.')) return;
         try {
-          const sent = await deleteTicket(state.id);
+          const sent = await deleteTicket(state);
           toast(sent ? 'Ticket eliminado.' : 'Sin conexión: el ticket se eliminará al volver internet.');
           navigate('/');
         } catch (error) {
@@ -429,7 +478,8 @@ export default async function ticket(root, { params, query }) {
   h('section', { class: 'card ticket__summary' },
     h('div', { class: 'ticket__line' }, h('span', null, 'Subtotal'), subtotalText),
     field('Descuento', discount),
-    field('Nota', note)),
+    field('Nota', note),
+    h('div', { class: 'field' }, h('span', { class: 'field__label' }, 'Foto del ticket (opcional)'), photoBox)),
   h('div', { class: 'ticket__bar' },
     h('div', { class: 'ticket__bar-total' }, h('span', { class: 'field__label' }, 'Total'), totalText),
     save));

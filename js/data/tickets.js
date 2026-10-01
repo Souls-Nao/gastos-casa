@@ -1,13 +1,14 @@
 import { cachedRead, isNetworkError, withTimeout } from '../core/offline.js';
 import { getState } from '../core/store.js';
 import { rpc, supabase, unwrap } from '../core/supabase.js';
-import { deleteRow } from './crud.js';
 import { ensureMonth } from './months.js';
 import { listPaymentMethods } from './payment-methods.js';
+import { deleteTicketWithPhoto, removeTicketPhoto, uploadTicketPhoto } from './photos.js';
 import { listStores } from './stores.js';
 import { dropPending, enqueue, pendingOperations } from './sync.js';
 
 const pendingKey = (id) => `ticket:${id}`;
+const photoKey = (id) => `photo:${id}`;
 
 export function itemAmount(item) {
   return Math.round(((item.quantity || 0) * (item.unit_price || 0) + Number.EPSILON) * 100) / 100;
@@ -22,7 +23,7 @@ export async function getTicket(id) {
   const pending = (await pendingOperations()).find((operation) => operation.key === pendingKey(id) && operation.type === 'save_ticket');
   if (pending) return pending.payload;
   const record = await cachedRead(`ticket:${id}`, async () => unwrap(await supabase.from('tickets')
-    .select('id, purchased_on, purchased_at, store_id, payment_method_id, discount, note, ticket_items(id, name, category_id, quantity, unit, unit_price), msi_plans(months, first_month)')
+    .select('id, purchased_on, purchased_at, store_id, payment_method_id, discount, note, photo_path, ticket_items(id, name, category_id, quantity, unit, unit_price), msi_plans(months, first_month)')
     .eq('id', id)
     .order('sort_order', { referencedTable: 'ticket_items' })
     .single()));
@@ -35,6 +36,7 @@ export async function getTicket(id) {
     payment_method_id: record.payment_method_id,
     discount: record.discount,
     note: record.note ?? '',
+    photo_path: record.photo_path,
     items: record.ticket_items,
     msi: plan ? { months: plan.months, first_month: plan.first_month } : null,
   };
@@ -78,15 +80,35 @@ export async function saveTicket(ticket) {
   return true;
 }
 
-export async function deleteTicket(id) {
+export async function deleteTicket(ticket) {
+  const payload = { id: ticket.id, photo_path: ticket.photo_path };
+  await dropPending(photoKey(ticket.id));
   try {
-    await withTimeout(deleteRow('tickets', id));
+    await withTimeout(deleteTicketWithPhoto(payload));
   } catch (error) {
     if (!isNetworkError(error)) throw error;
-    await enqueue(pendingKey(id), 'delete_ticket', { id });
+    await enqueue(pendingKey(ticket.id), 'delete_ticket', payload);
     return false;
   }
-  await dropPending(pendingKey(id));
+  await dropPending(pendingKey(ticket.id));
   await ensureMonth(getState().month);
   return true;
+}
+
+export async function saveTicketPhoto(ticket, blob) {
+  const payload = { id: ticket.id, blob, previousPath: ticket.photo_path };
+  try {
+    await withTimeout(uploadTicketPhoto(payload));
+  } catch (error) {
+    if (!isNetworkError(error)) throw error;
+    await enqueue(photoKey(ticket.id), 'upload_photo', payload);
+    return false;
+  }
+  await dropPending(photoKey(ticket.id));
+  return true;
+}
+
+export async function clearTicketPhoto(ticket) {
+  await dropPending(photoKey(ticket.id));
+  if (ticket.photo_path) await removeTicketPhoto(ticket.id, ticket.photo_path);
 }

@@ -125,3 +125,18 @@
     bottom: var(--space-4);
   }
 }
+
+.ticket__photo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.ticket__photo-image {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+}

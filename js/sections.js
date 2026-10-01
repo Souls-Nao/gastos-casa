@@ -12,5 +12,6 @@ export const sections = [
   { path: '/ahorro', label: 'Ahorro y reserva', icon: 'piggy-bank', view: () => import('./views/savings.js') },
   { path: '/lista', label: 'Lista de compras', short: 'Lista', icon: 'list-checks', tab: 4, view: () => import('./views/shopping.js') },
   { path: '/catalogos', label: 'Catálogos', icon: 'tags', view: () => import('./views/catalogs.js') },
+  { path: '/datos', label: 'Datos y respaldo', icon: 'database', view: () => import('./views/data.js') },
   { path: '/mas', label: 'Más', icon: 'ellipsis', tab: 5, mobileOnly: true, view: () => import('./views/more.js') },
 ];
