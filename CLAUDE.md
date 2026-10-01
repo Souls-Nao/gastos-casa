@@ -166,8 +166,8 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 - [x] Bloque 11 — Pagos del mes. `#/pagos` (pagos del mes con barra pagado/pendiente, avisos de vencimiento, registrar y deshacer pagos, pagos únicos, ajuste del monto de la tarjeta), `#/pagos?tab=fijos` (gastos fijos recurrentes) y `#/pagos?tab=msi` (compras a meses activas, y alta manual de las que ya se venían pagando). Migración `009_payments.sql` (aplicada y probada). Requiere conexión para guardar. Probado en local con el arnés en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
 - [x] Bloque 12 — Ahorro y reserva. `#/ahorro` (metas con cuota mensual automática, progreso, guardar/retirar, movimientos, archivar y eliminar) y `#/ahorro?tab=reserva` (saldo, guardar/usar, movimientos, cierre de meses terminados con confirmación y reapertura). Migración `010_reopen_month.sql` (aplicada y probada). Requiere conexión para guardar. Probado en local con el arnés en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
 - [x] Bloque 13 — Dashboard. Inicio con tres vistas: `#/` o `#/?vista=general` (mes en curso: seis indicadores, alertas, tendencia de 6 a 12 meses, productos más comprados), `#/?vista=dia&dia=aaaa-mm-dd` (gasto del día, cuánto se puede gastar por día, detalle) y `#/?vista=mes` (dona por categoría con subcategorías, comparación con el mes anterior, gastos hormiga, últimos tickets). RPC `monthly_trend(p_months, p_until)` (migración `011_monthly_trend.sql`, aplicada y probada). Probado en local con el arnés en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
-- [ ] Bloque 14 — Lista de compras ← **siguiente**
-- [ ] Bloque 15 — Extras
+- [x] Bloque 14 — Lista de compras. `#/lista` (`?id=` guarda la lista abierta): varias listas, cada una con tienda opcional; agregar escribiendo (con autocompletado) o desde el historial; marcar, ajustar cantidad, unidad, precio y categoría; total estimado y del carrito; **Convertir en ticket** abre `#/ticket?lista=<id>`. Funciona sin conexión (se encola). RPC `save_shopping_list(p jsonb)` (migración `012_save_shopping_list.sql`, aplicada y probada). Se eliminó `views/pending.js` (ya no hay secciones pendientes). Probado en local con el arnés en escritorio y móvil; la prueba real la hace el usuario en Pages
+- [ ] Bloque 15 — Extras ← **siguiente**
 - [ ] Bloque 16 — Pulido y QA
 
 ### Notas para el siguiente bloque
@@ -191,6 +191,16 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 - `ui/`: `icon(nombre, tamaño)`, `toast(mensaje, 'info' | 'error')`, `openModal({ title, body, actions })` (devuelve el `<dialog>`; `actions`: `{ label, value, variant }`), `confirmDialog({ title, message, confirmLabel, danger })` → `Promise<boolean>`, `createMonthNav(onShift)` → `{ element, setMonth }`, `createShell`.
 - CSS: `tokens.css` (colores claro/oscuro, espacios, radios), `components.css` (`btn` + `btn--primary/ghost/danger/icon`, `card`, `field`, `list`, `empty`, `month-nav`, `modal`, `toast`), `layout.css` (shell), `views/*.css` (cada archivo nuevo se enlaza en `index.html`).
 - Pruebas: Claude no escribe la contraseña y el usuario no ve el panel de navegador de la app. Para probar vistas con sesión en local existe `.claude/dev-harness.js` (no se sube al repo; si falta, hay que recrearlo): simula PostgREST en memoria (`db`, `calls`, `rpc`) y monta el shell. Uso desde la consola de `http://localhost:8080/index.html`: `const hx = await import('/.claude/dev-harness.js'); window.hx = hx; await hx.mount('#/catalogos')`. Para tablas o RPC nuevos, agrega datos a `hx.db` / `hx.rpc`. La prueba con datos reales la hace el usuario en Pages.
+
+### Lista de compras (bloque 14)
+
+- Una lista se guarda completa, como documento: `save_shopping_list(p)` recibe `{ id, name, store_id, status, ticket_id, items: [{ id, name, category_id, quantity, unit, unit_price, checked }] }`, borra los artículos que ya no vienen y es idempotente. Gana la última escritura (si dos dispositivos editan la misma lista a la vez, se conserva lo del último que guardó).
+- `data/shopping.js`: `listShoppingLists()` (listas abiertas con `items`, con lo pendiente de la cola encima), `saveShoppingList(lista)` y `deleteShoppingList(id)` (devuelven `true` si se envió, `false` si quedó en cola; claves `list:<id>`), `listTotals(lista)` → `{ estimated, inCart, checked }`, `itemsToBuy(lista)` (los marcados, o todos si no hay ninguno marcado), `finishShoppingList(lista, comprados, ticketId)` (quita lo comprado; si no queda nada, la marca `done` con su `ticket_id`).
+- `data/sync.js`: ejecutores nuevos `save_list` y `delete_list`.
+- `views/shopping.js`: guarda sola 600 ms después de cada cambio y al salir de la vista; no escucha `data:changed` para no pisar lo que se está editando.
+- `views/ticket.js`: con `?lista=<id>` arma el ticket con `itemsToBuy` y la tienda de la lista, y al guardar llama `finishShoppingList`.
+- CSS: `views/shopping.css` (`shop-item`, `shop__add`); la barra inferior reutiliza `ticket__bar`.
+- El arnés simula `shopping_lists` y `save_shopping_list`.
 
 ### Dashboard (bloque 13)
 

@@ -49,7 +49,7 @@ async function enter(user) {
     outlet: shell.outlet,
     onNavigate: shell.setActive,
     onError(error, root) {
-      root.replaceChildren(h('p', { class: 'empty__text' }, 'No se pudo abrir esta sección.'));
+      root.replaceChildren(h('p', { class: 'list__empty' }, 'No se pudo abrir esta sección.'));
       toast(error.message, 'error');
     },
   });

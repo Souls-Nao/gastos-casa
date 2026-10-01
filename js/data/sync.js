@@ -8,6 +8,8 @@ import { ensureMonth } from './months.js';
 const executors = {
   save_ticket: (payload) => rpc('save_ticket', { p: payload }),
   delete_ticket: (payload) => deleteRow('tickets', payload.id),
+  save_list: (payload) => rpc('save_shopping_list', { p: payload }),
+  delete_list: (payload) => deleteRow('shopping_lists', payload.id),
 };
 
 let syncing = false;

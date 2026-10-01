@@ -164,7 +164,9 @@
 .tabs__item {
   display: inline-flex;
   align-items: center;
+  gap: var(--space-1);
   flex-shrink: 0;
+  cursor: pointer;
   min-height: 40px;
   padding: 0 var(--space-4);
   background: var(--surface);
@@ -700,25 +702,6 @@ button.list__item {
 .account__email {
   overflow-wrap: anywhere;
   margin-bottom: var(--space-2);
-}
-
-.empty {
-  display: grid;
-  justify-items: center;
-  gap: var(--space-3);
-  padding: var(--space-6) var(--space-4);
-  color: var(--muted);
-  text-align: center;
-}
-
-.empty__title {
-  color: var(--text);
-  font-size: var(--text-l);
-}
-
-.empty__text {
-  max-width: 36ch;
-  color: var(--muted);
 }
 
 .month-nav {

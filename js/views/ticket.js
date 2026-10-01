@@ -5,6 +5,7 @@ import { navigate } from '../core/router.js';
 import { categoryTree, listCategories } from '../data/categories.js';
 import { listPaymentMethods } from '../data/payment-methods.js';
 import { listProducts } from '../data/products.js';
+import { finishShoppingList, itemsToBuy, listShoppingLists } from '../data/shopping.js';
 import { createStore, listStores } from '../data/stores.js';
 import { deleteTicket, getTicket, itemAmount, saveTicket, ticketTotals } from '../data/tickets.js';
 import { listUnits } from '../data/units.js';
@@ -46,12 +47,14 @@ export default async function ticket(root, { params, query }) {
   ]);
   const editing = Boolean(params.id);
   const repeatId = query.get('repetir');
+  const shoppingList = query.has('lista') ? (await listShoppingLists()).find((list) => list.id === query.get('lista')) : null;
+  const bought = shoppingList ? itemsToBuy(shoppingList) : [];
   const tree = categoryTree(categories.filter((category) => !category.hidden), 'expense')
     .map((category) => ({ ...category, children: category.children.filter((child) => !child.hidden) }));
   const visibleCategories = new Set(tree.flatMap((category) => [category.id, ...category.children.map((child) => child.id)]));
   const visibleMethods = methods.filter((method) => !method.hidden);
   const catalog = products.map((product) => ({ ...product, key: normalize(product.name) }));
-  const draft = editing || repeatId ? null : readLocal(DRAFT_KEY);
+  const draft = editing || repeatId || shoppingList ? null : readLocal(DRAFT_KEY);
   let restored = false;
   let state;
 
@@ -78,11 +81,13 @@ export default async function ticket(root, { params, query }) {
       id: crypto.randomUUID(),
       purchased_on: todayISO(),
       purchased_at: nowTime(),
-      store_id: null,
+      store_id: shoppingList?.store_id ?? null,
       payment_method_id: (visibleMethods.find((method) => method.id === last) ?? visibleMethods[0])?.id ?? null,
       discount: 0,
       note: '',
-      items: [newItem()],
+      items: bought.length
+        ? bought.map(({ name, category_id, quantity, unit, unit_price }) => ({ id: crypto.randomUUID(), name, category_id, quantity, unit, unit_price }))
+        : [newItem()],
       msi: null,
     };
   }
@@ -363,6 +368,7 @@ export default async function ticket(root, { params, query }) {
       const sent = await saveTicket({ ...state, items: state.items.map((item) => ({ ...item, name: item.name.trim() })) });
       if (state.payment_method_id) writeLocal(METHOD_KEY, state.payment_method_id);
       if (!editing) removeLocal(DRAFT_KEY);
+      if (shoppingList) await finishShoppingList(shoppingList, bought, state.id);
       toast(sent
         ? `Ticket guardado: ${money(total)}`
         : `Sin conexión: el ticket de ${money(total)} quedó guardado en este dispositivo y se enviará solo al volver internet.`);
