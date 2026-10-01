@@ -136,12 +136,8 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 
 1. **Git y GitHub CLI** en Windows: `winget install Git.Git` y `winget install GitHub.cli`, luego `gh auth login` (GitHub.com → HTTPS → navegador). Su usuario de GitHub es `Souls-Nao`. Repo sugerido: `gastos-casa`. Puede ser público (el repo no contiene secretos; los datos están protegidos por RLS) o privado si su plan de GitHub permite Pages en privados.
 2. **Cuenta de Supabase:** entrar a supabase.com con su cuenta de GitHub. Crear el proyecto `gastos-casa`, región **East US (North Virginia)**, y guardar en un lugar seguro la contraseña de la base de datos (no hace falta compartírtela).
-3. **MCP de Supabase** para que apliques el esquema y las migraciones tú mismo. En PowerShell, dentro de la carpeta del proyecto:
-   ```
-   claude mcp add --scope project --transport http supabase "https://mcp.supabase.com/mcp?project_ref=<REF_DEL_PROYECTO>"
-   ```
-   Después, dentro de Claude Code: `/mcp` → supabase → Authenticate (se abre el navegador), y reiniciar Claude Code. El `project_ref` es el identificador que aparece en la URL del panel del proyecto.
-   **Plan B sin MCP:** el usuario abre SQL Editor en Supabase, pega `supabase/schema.sql` y presiona Run.
+3. **Conector de Supabase** en la app de escritorio de Claude para que apliques el esquema y las migraciones tú mismo: el usuario presiona **Connect** en la tarjeta del conector y autoriza su organización en el navegador (ya hecho el 01/10/2026). Si en una sesión nueva no aparecen las herramientas de Supabase, vuelve a mostrar la tarjeta del conector.
+   **Plan B sin conector:** el usuario abre SQL Editor en Supabase, pega el SQL y presiona Run.
 4. **Cuenta de la casa:** en Supabase → Authentication → Users → Add user (correo y contraseña, auto-confirmar). Luego Authentication → Sign In / Providers → desactivar **Allow new users to sign up**.
 5. **Llaves para la app:** Project Settings → API Keys → **Project URL** y **publishable key** (o anon key) → van en `js/config.js`.
 6. Opcional para pruebas: Python ya está instalado; sirve la app en local con `python -m http.server 8080`.
@@ -153,10 +149,12 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
   - [x] Repo público `Souls-Nao/gastos-casa` (rama `main`, commits con correo noreply de GitHub) y GitHub Pages activo en `https://souls-nao.github.io/gastos-casa/`
   - [x] Página de prueba (`index.html`, `css/base.css`, `js/app.js`, `js/core/supabase.js`): login, `seed_defaults`, `ensure_month`, conteos y `month_summary`
   - [x] Servidor local: `.claude/launch.json` (configuración `gastos`, puerto 8080; `.claude/` no se sube al repo)
-  - [x] Proyecto Supabase creado: ref `oyawbeizugnkvvyqemcn` (`https://oyawbeizugnkvvyqemcn.supabase.co`); MCP declarado en `.mcp.json` (el CLI `claude` y Node no están instalados; `.mcp.json` equivale a `claude mcp add --scope project`)
-  - [ ] `schema.sql` aplicado (por MCP/conector Supabase si queda autenticado en la sesión, o Plan B por SQL Editor)
-  - [ ] Cuenta de la casa creada y registros nuevos desactivados
-  - [ ] `js/config.js` con Project URL y publishable key, y login probado en local y en Pages
+  - [x] Proyecto Supabase creado: ref `oyawbeizugnkvvyqemcn` (`https://oyawbeizugnkvvyqemcn.supabase.co`), Postgres 17. Claude se conecta con el **conector Supabase** de la app de escritorio (el CLI `claude` y Node no están instalados)
+  - [x] `schema.sql` aplicado por el conector (migraciones `schema_01_tables` … `schema_04_security_storage`) y `supabase/migrations/002_revoke_rls_auto_enable.sql`. Verificado: 18 tablas con RLS, 5 vistas `security_invoker`, `anon` sin acceso, bucket `tickets` privado, y prueba de humo como `authenticated` (seed, `ensure_month`, ticket con descuento, `v_spending`, `month_summary`) revertida
+  - [x] Cuenta de la casa creada y confirmada
+  - [x] `js/config.js` con Project URL y publishable key; la página muestra el formulario de login en local
+  - [ ] El usuario debe apagar en Authentication → Sign In / Providers: **Allow new users to sign up** y **Allow anonymous sign-ins** (el 01/10/2026 ambos seguían encendidos; se comprueba en `/auth/v1/settings`: `disable_signup` y `external.anonymous_users`)
+  - [ ] El usuario prueba el login en local y en Pages (Claude no escribe la contraseña)
 - [ ] Bloque 3 — Núcleo
 - [ ] Bloque 4 — Catálogos
 - [ ] Bloque 5 — Captura de tickets
@@ -173,6 +171,10 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 - [ ] Bloque 16 — Pulido y QA
 
 ### Notas para el siguiente bloque
+
+- Migraciones: guarda el SQL en `supabase/migrations/NNN_nombre.sql` y aplícalo con el conector Supabase (`apply_migration`, proyecto `oyawbeizugnkvvyqemcn`). Toda función nueva en `public` necesita `revoke execute ... from anon, public` y `grant execute ... to authenticated`.
+- Para probar SQL como el usuario sin dejar datos: bloque `do $$ … $$` que fija `request.jwt.claims`, hace `set local role authenticated` y termina con `raise exception` para revertir.
+- Pendiente para el bloque 16: fijar `search_path` en las 14 funciones (aviso del advisor de seguridad de Supabase).
 
 - Llama `seed_defaults()` y después `ensure_month(current_date)` justo después del login.
 - No envíes `total` al insertar o actualizar tickets.
