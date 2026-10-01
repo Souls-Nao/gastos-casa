@@ -145,7 +145,7 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 ## Estado
 
 - [x] Bloque 1 — Base de datos (`supabase/schema.sql`, probado localmente; **aún no aplicado en Supabase**)
-- [ ] Bloque 2 — Puesta en marcha ← **en curso**
+- [x] Bloque 2 — Puesta en marcha
   - [x] Repo público `Souls-Nao/gastos-casa` (rama `main`, commits con correo noreply de GitHub) y GitHub Pages activo en `https://souls-nao.github.io/gastos-casa/`
   - [x] Página de prueba (`index.html`, `css/base.css`, `js/app.js`, `js/core/supabase.js`): login, `seed_defaults`, `ensure_month`, conteos y `month_summary`
   - [x] Servidor local: `.claude/launch.json` (configuración `gastos`, puerto 8080; `.claude/` no se sube al repo)
@@ -153,9 +153,9 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
   - [x] `schema.sql` aplicado por el conector (migraciones `schema_01_tables` … `schema_04_security_storage`) y `supabase/migrations/002_revoke_rls_auto_enable.sql`. Verificado: 18 tablas con RLS, 5 vistas `security_invoker`, `anon` sin acceso, bucket `tickets` privado, y prueba de humo como `authenticated` (seed, `ensure_month`, ticket con descuento, `v_spending`, `month_summary`) revertida
   - [x] Cuenta de la casa creada y confirmada
   - [x] `js/config.js` con Project URL y publishable key; la página muestra el formulario de login en local
-  - [ ] El usuario debe apagar en Authentication → Sign In / Providers: **Allow new users to sign up** y **Allow anonymous sign-ins** (el 01/10/2026 ambos seguían encendidos; se comprueba en `/auth/v1/settings`: `disable_signup` y `external.anonymous_users`)
-  - [ ] El usuario prueba el login en local y en Pages (Claude no escribe la contraseña)
-- [ ] Bloque 3 — Núcleo
+  - [x] Login probado por el usuario en Pages el 01/10/2026 (Claude no escribe la contraseña)
+  - **Pospuesto por decisión del usuario (01/10/2026), hasta nuevo aviso:** apagar en Authentication → Sign In / Providers **Allow new users to sign up** y **Allow anonymous sign-ins**. No insistas en cada bloque; recuérdalo en el bloque 16 (revisión de seguridad) o si él lo menciona. Se comprueba en `/auth/v1/settings`: `disable_signup` y `external.anonymous_users`
+- [ ] Bloque 3 — Núcleo ← **siguiente** (reemplaza la página de prueba: `index.html`, `css/base.css` y `js/app.js` se reescriben; `js/core/supabase.js` exporta `supabase` y `configured`)
 - [ ] Bloque 4 — Catálogos
 - [ ] Bloque 5 — Captura de tickets
 - [ ] Bloque 6 — PWA y offline
