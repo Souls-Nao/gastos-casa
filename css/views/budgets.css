@@ -1,0 +1,109 @@
+.plan {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.plan__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.plan__stats {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.budget-card {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+}
+
+.budget {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.budget > .row {
+  min-height: 0;
+  padding: 0;
+}
+
+.budget__previous {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.budget--child {
+  padding: var(--space-3) 0 0;
+  border-top: 1px solid var(--border);
+}
+
+.budget__children {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.budget__children[open] {
+  padding-bottom: 0;
+}
+
+.budget__children[open] > .budget__toggle {
+  margin-bottom: var(--space-3);
+}
+
+.budget__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 32px;
+  color: var(--muted);
+  font-size: var(--text-s);
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.budget__toggle::-webkit-details-marker {
+  display: none;
+}
+
+.budget__toggle > svg {
+  transition: transform 0.15s;
+}
+
+.budget__children[open] > .budget__toggle > svg {
+  transform: rotate(90deg);
+}
+
+.budget__children > .budget + .budget {
+  margin-top: var(--space-3);
+}
+
+.quincenas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.quincena {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-2);
+  background: var(--bg);
+  border-radius: var(--radius-m);
+  font-size: var(--text-s);
+}
+
+.quincena__label {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+@media (min-width: 600px) {
+  .plan__stats {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}

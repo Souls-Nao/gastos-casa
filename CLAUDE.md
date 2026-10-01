@@ -162,8 +162,8 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 - [x] Bloque 7 — Historial. `#/historial` (tickets con filtros en la URL: `desde`, `hasta`, `categoria`, `tienda`, `metodo`, `q`) y `#/historial?tab=productos` (buscador, orden, detalle con precio en el tiempo, comparación por tienda y compras). RPC `search_tickets(p jsonb)` (migración `006_search_tickets.sql`, aplicada y probada; usa `unaccent`). Tocar un ticket en Inicio o Historial abre su detalle (ventana) con **Repetir compra** y **Editar**. Probado en local con el arnés en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
 - [x] Bloque 8 — Calendario. `#/calendario` (`?dia=aaaa-mm-dd` guarda el día elegido): mes con total por día, cuatro niveles de color por rango entre los días con gasto, y detalle del día (por categoría y subcategoría, tickets, artículos). RPC `day_detail(p_day)` (migración `007_day_detail.sql`, aplicada y probada). Probado en local con el arnés en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
 - [x] Bloque 9 — Ingresos. `#/ingresos`: listado del mes, total, desglose por categoría, alta/edición/eliminación en ventana. Sin migración (usa la tabla `incomes`). Requiere conexión para guardar. Probado en local con el arnés y el guardado directo en la base (revertido); la prueba con datos reales la hace el usuario en Pages
-- [ ] Bloque 10 — Presupuestos ← **siguiente**
-- [ ] Bloque 11 — Pagos del mes
+- [x] Bloque 10 — Presupuestos. `#/presupuestos`: plan del mes (total a usar, saldo inicial, todo el mes o quincenas), presupuesto por categoría y subcategoría, barras gastado / mes anterior / límite, alertas al 80% y 100%, sugerencia por promedio. RPC `budget_overview(p_month)` y `set_budget(p_month, p_category, p_amount, p_q1)` (migración `008_budgets.sql`, aplicada y probada). Requiere conexión para guardar. Probado en local con el arnés en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
+- [ ] Bloque 11 — Pagos del mes ← **siguiente**
 - [ ] Bloque 12 — Ahorro y reserva
 - [ ] Bloque 13 — Dashboard
 - [ ] Bloque 14 — Lista de compras
@@ -191,6 +191,16 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 - `ui/`: `icon(nombre, tamaño)`, `toast(mensaje, 'info' | 'error')`, `openModal({ title, body, actions })` (devuelve el `<dialog>`; `actions`: `{ label, value, variant }`), `confirmDialog({ title, message, confirmLabel, danger })` → `Promise<boolean>`, `createMonthNav(onShift)` → `{ element, setMonth }`, `createShell`.
 - CSS: `tokens.css` (colores claro/oscuro, espacios, radios), `components.css` (`btn` + `btn--primary/ghost/danger/icon`, `card`, `field`, `list`, `empty`, `month-nav`, `modal`, `toast`), `layout.css` (shell), `views/*.css` (cada archivo nuevo se enlaza en `index.html`).
 - Pruebas: Claude no escribe la contraseña y el usuario no ve el panel de navegador de la app. Para probar vistas con sesión en local existe `.claude/dev-harness.js` (no se sube al repo; si falta, hay que recrearlo): simula PostgREST en memoria (`db`, `calls`, `rpc`) y monta el shell. Uso desde la consola de `http://localhost:8080/index.html`: `const hx = await import('/.claude/dev-harness.js'); window.hx = hx; await hx.mount('#/catalogos')`. Para tablas o RPC nuevos, agrega datos a `hx.db` / `hx.rpc`. La prueba con datos reales la hace el usuario en Pages.
+
+### Presupuestos (bloque 10)
+
+- `budget_overview(p_month)` → `{ plan: { total_budget, opening_balance, split_mode, closed_at } | null, uncategorized, rows: [{ category_id, budget, q1_budget, spent, spent_q1, previous, average }] }`, una fila por cada categoría de gasto. En una categoría principal, `spent`/`previous`/`average` incluyen sus subcategorías. `average` = gasto de los 3 meses anteriores entre los meses con datos. `spent_q1` = gastado del día 1 al 15 (las mensualidades MSI caen en la primera quincena).
+- `set_budget(...)`: monto ≤ 0 quita el presupuesto (y los de sus subcategorías si es principal). Mantiene la regla **presupuesto de la categoría ≥ suma de sus subcategorías**: si no se cumple, sube el de la principal y devuelve el nuevo monto (si no, `null`). `q2 = amount − q1_amount`; con `q1_amount` nulo la UI reparte mitad y mitad.
+- `month_plans.total_budget` ("Total a usar") es independiente de lo asignado a categorías; la UI muestra cuánto falta por asignar o cuánto se pasa.
+- `data/budgets.js`: `getBudgetOverview(mes)`, `budgetStatus(gastado, presupuesto)` → `'none' | 'ok' | 'near' | 'over'` (80% y 100%), `setBudget(mes, categoria, monto, primeraQuincena)`, `saveMonthPlan(mes, valores)`.
+- `ui/budget-bars.js`: `budgetBars({ spent, budget, previous, status, label })`, `barsLegend()`, `statusMeter(valor, total, status)`. Colores de estado: acento (bien), `--warning` (≥80%), `--danger` (≥100%), siempre acompañados de etiqueta de texto. El dashboard debe reutilizarlos para sus alertas.
+- CSS nuevo en `components.css`: `bars`, `legend`, `tag--danger`, `notice--warning`, `form__extra`; `views/budgets.css` (`plan`, `budget`, `quincenas`).
+- El arnés simula `budget_overview`, `set_budget`, `budgets` y `month_plans`.
 
 ### Ingresos (bloque 9)
 

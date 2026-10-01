@@ -8,7 +8,7 @@ export const sections = [
   { path: '/historial', label: 'Historial', icon: 'receipt-text', view: () => import('./views/history.js') },
   { path: '/calendario', label: 'Calendario', icon: 'calendar-days', tab: 2, view: () => import('./views/calendar.js') },
   { path: '/ingresos', label: 'Ingresos', icon: 'wallet', view: () => import('./views/incomes.js') },
-  { path: '/presupuestos', label: 'Presupuestos', icon: 'chart-pie', block: 10, view: pending },
+  { path: '/presupuestos', label: 'Presupuestos', icon: 'chart-pie', view: () => import('./views/budgets.js') },
   { path: '/pagos', label: 'Pagos del mes', icon: 'credit-card', block: 11, view: pending },
   { path: '/ahorro', label: 'Ahorro y reserva', icon: 'piggy-bank', block: 12, view: pending },
   { path: '/lista', label: 'Lista de compras', short: 'Lista', icon: 'list-checks', tab: 4, block: 14, view: pending },
