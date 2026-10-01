@@ -10,6 +10,6 @@ export const sections = [
   { path: '/pagos', label: 'Pagos del mes', icon: 'credit-card', block: 11, view: pending },
   { path: '/ahorro', label: 'Ahorro y reserva', icon: 'piggy-bank', block: 12, view: pending },
   { path: '/lista', label: 'Lista de compras', short: 'Lista', icon: 'list-checks', tab: 4, block: 14, view: pending },
-  { path: '/catalogos', label: 'Catálogos', icon: 'tags', block: 4, view: pending },
+  { path: '/catalogos', label: 'Catálogos', icon: 'tags', view: () => import('./views/catalogs.js') },
   { path: '/mas', label: 'Más', icon: 'ellipsis', tab: 5, mobileOnly: true, view: () => import('./views/more.js') },
 ];

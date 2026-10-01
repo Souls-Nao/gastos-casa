@@ -86,7 +86,7 @@ Interfaz agradable, limpia y moderna, con tema claro y oscuro (según el sistema
 
 `supabase/schema.sql` se probó en PostgreSQL 16 con stubs de `auth` y `storage`: carga sin errores, se puede volver a ejecutar sin romper nada, y pasó pruebas de totales, descuentos, MSI, ciclo de tarjeta, copia de presupuestos, metas y aislamiento entre usuarios.
 
-**Tablas:** `categories` (con `parent_id` para subcategorías, `kind` expense/income, `hidden`, `icon`, `color`, `sort_order`), `stores`, `payment_methods` (`type` cash/debit/credit/transfer/voucher, `closing_day`, `due_day`, `credit_limit`), `products`, `tickets`, `ticket_items` (`amount` = cantidad × precio, columna generada), `msi_plans`, `incomes`, `month_plans` (`total_budget`, `opening_balance`, `split_mode` month/biweekly, `closed_at`), `budgets` (`amount`, `q1_amount`; q2 = amount − q1), `recurring_expenses` (monthly/bimonthly/quarterly/semiannual/yearly), `obligations` (kind card/msi/recurring/custom, `manual`), `obligation_payments` (`ticket_id` si el pago generó un gasto), `savings_goals`, `savings_movements` (+ depósito / − retiro), `reserve_movements` (kind month_close/manual), `shopping_lists`, `shopping_list_items`.
+**Tablas:** `categories` (con `parent_id` para subcategorías, `kind` expense/income, `hidden`, `icon`, `color`, `sort_order`), `stores`, `payment_methods` (`type` cash/debit/credit/transfer/voucher, `closing_day`, `due_day`, `credit_limit`), `products`, `tickets`, `ticket_items` (`amount` = cantidad × precio, columna generada), `msi_plans`, `incomes`, `month_plans` (`total_budget`, `opening_balance`, `split_mode` month/biweekly, `closed_at`), `budgets` (`amount`, `q1_amount`; q2 = amount − q1), `recurring_expenses` (monthly/bimonthly/quarterly/semiannual/yearly), `obligations` (kind card/msi/recurring/custom, `manual`), `obligation_payments` (`ticket_id` si el pago generó un gasto), `savings_goals`, `savings_movements` (+ depósito / − retiro), `reserve_movements` (kind month_close/manual), `shopping_lists`, `shopping_list_items`, `units` (`name`, `hidden`, `sort_order`; migración 003).
 
 **Automático en la base de datos:**
 - `tickets.total` se recalcula solo (suma de artículos − descuento). Nunca lo envíes desde el cliente.
@@ -155,8 +155,8 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
   - [x] Login probado por el usuario en Pages el 01/10/2026 (Claude no escribe la contraseña)
   - **Pospuesto por decisión del usuario (01/10/2026), hasta nuevo aviso:** apagar en Authentication → Sign In / Providers **Allow new users to sign up** y **Allow anonymous sign-ins**. No insistas en cada bloque; recuérdalo en el bloque 16 (revisión de seguridad) o si él lo menciona. Se comprueba en `/auth/v1/settings`: `disable_signup` y `external.anonymous_users`
 - [x] Bloque 3 — Núcleo. Probado en local en escritorio (1280px) y móvil (375px), tema claro y oscuro: login, menú lateral, barra inferior, router, vistas Inicio / Más / pendientes, modal y toast. Las vistas con sesión se probaron montando el shell a mano y simulando las respuestas RPC; **el flujo real con sesión (entrar, recargar y seguir dentro, cerrar sesión) lo prueba el usuario en Pages**
-- [ ] Bloque 4 — Catálogos ← **siguiente**
-- [ ] Bloque 5 — Captura de tickets
+- [x] Bloque 4 — Catálogos. `#/catalogos?tab=categorias|tiendas|pagos|unidades` (categorías además con `&kind=expense|income`). Nada se borra: todo se oculta/muestra. Tabla nueva `units` (migración `003_units.sql`, aplicada; `seed_defaults` ahora también siembra 12 unidades). Probado en local con el arnés de pruebas en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
+- [ ] Bloque 5 — Captura de tickets ← **siguiente**
 - [ ] Bloque 6 — PWA y offline
 - [ ] Bloque 7 — Historial
 - [ ] Bloque 8 — Calendario
@@ -189,4 +189,14 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 - `data/account.js`: `seedDefaults`. `data/months.js`: `ensureMonth`, `getMonthSummary`, `selectMonth(mes)` (asegura el mes y actualiza `month` en el store).
 - `ui/`: `icon(nombre, tamaño)`, `toast(mensaje, 'info' | 'error')`, `openModal({ title, body, actions })` (devuelve el `<dialog>`; `actions`: `{ label, value, variant }`), `confirmDialog({ title, message, confirmLabel, danger })` → `Promise<boolean>`, `createMonthNav(onShift)` → `{ element, setMonth }`, `createShell`.
 - CSS: `tokens.css` (colores claro/oscuro, espacios, radios), `components.css` (`btn` + `btn--primary/ghost/danger/icon`, `card`, `field`, `list`, `empty`, `month-nav`, `modal`, `toast`), `layout.css` (shell), `views/*.css` (cada archivo nuevo se enlaza en `index.html`).
-- Pruebas: Claude no escribe la contraseña y el usuario no ve el panel de navegador de la app. Para probar vistas con sesión en local: desde la consola de la página monta `createShell` + `startRouter` con un usuario falso en el store y sustituye `window.fetch` para responder las llamadas a `/rest/v1/`. La prueba con datos reales la hace el usuario en Pages.
+- Pruebas: Claude no escribe la contraseña y el usuario no ve el panel de navegador de la app. Para probar vistas con sesión en local existe `.claude/dev-harness.js` (no se sube al repo; si falta, hay que recrearlo): simula PostgREST en memoria (`db`, `calls`, `rpc`) y monta el shell. Uso desde la consola de `http://localhost:8080/index.html`: `const hx = await import('/.claude/dev-harness.js'); window.hx = hx; await hx.mount('#/catalogos')`. Para tablas o RPC nuevos, agrega datos a `hx.db` / `hx.rpc`. La prueba con datos reales la hace el usuario en Pages.
+
+### Módulos de catálogos (bloque 4)
+
+- `data/crud.js`: `listRows(tabla, ...orden)`, `insertRow`, `updateRow` (traducen el error de nombre duplicado), `nextOrder(filas)`.
+- `data/categories.js`: `listCategories`, `categoryTree(filas, kind)` (categorías con `children`), `createCategory`, `updateCategory(categoria, cambios)` (propaga el color a las subcategorías), `reorderCategories(ordenadas)`. Las subcategorías no tienen icono y heredan el color.
+- `data/stores.js`: `listStores`, `createStore(nombre)`, `updateStore`. `data/units.js`: `listUnits`, `createUnit(nombre)`, `updateUnit`. `ticket_items.unit` sigue siendo texto: `units` solo alimenta el selector.
+- `data/payment-methods.js`: `PAYMENT_TYPES` (`label`, `icon` por tipo), `listPaymentMethods`, `createPaymentMethod`, `updatePaymentMethod` (ambas llaman `ensureMonth` para refrescar los pagos de tarjeta).
+- En los selectores de captura hay que filtrar lo oculto (`hidden`), incluidas las subcategorías de una categoría oculta.
+- `ui/`: `field(label, control, hint)`, `fieldGroup`, `textInput(props)`; `openFormModal({ title, body, submitLabel, onSubmit })` (muestra el error que lance `onSubmit` y cierra si termina bien); `tabs(items, actual)`; `listRow({ leading, title, subtitle, hidden, actions })`, `iconButton`, `hideButton`; `categoryIcon(categoria, tamaño)`; `colorPicker(valor)` e `iconPicker(valor)` → `{ element, value }`.
+- CSS nuevo en `components.css`: `form`, `tabs`, `toolbar`, `row`, `tag`, `category-icon`, `swatches`, `icon-grid`; `base.css`: `visually-hidden`.

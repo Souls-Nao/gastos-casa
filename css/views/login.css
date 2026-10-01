@@ -28,11 +28,6 @@
   text-align: center;
 }
 
-.login__error {
-  color: var(--danger);
-  font-size: var(--text-s);
-}
-
 .login__card .btn {
   margin-top: var(--space-2);
 }

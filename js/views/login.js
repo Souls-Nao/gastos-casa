@@ -1,10 +1,11 @@
 import { signIn } from '../core/auth.js';
 import { h } from '../core/dom.js';
+import { field, textInput } from '../ui/field.js';
 
 export default function login(root) {
-  const email = h('input', { class: 'field__input', type: 'email', autocomplete: 'username', required: true });
-  const password = h('input', { class: 'field__input', type: 'password', autocomplete: 'current-password', required: true });
-  const message = h('p', { class: 'login__error', role: 'alert', hidden: true });
+  const email = textInput({ type: 'email', autocomplete: 'username', required: true });
+  const password = textInput({ type: 'password', autocomplete: 'current-password', required: true });
+  const message = h('p', { class: 'form__error', role: 'alert', hidden: true });
   const submit = h('button', { class: 'btn btn--primary', type: 'submit' }, 'Entrar');
 
   async function onsubmit(event) {
@@ -28,8 +29,8 @@ export default function login(root) {
         h('img', { class: 'login__logo', src: 'assets/icons/icon.svg', alt: '', width: 64, height: 64 }),
         h('h1', { class: 'login__title' }, 'Gastos de Casa'),
         h('p', { class: 'login__hint' }, 'Entra con la cuenta de la casa.'),
-        h('label', { class: 'field' }, h('span', { class: 'field__label' }, 'Correo'), email),
-        h('label', { class: 'field' }, h('span', { class: 'field__label' }, 'Contraseña'), password),
+        field('Correo', email),
+        field('Contraseña', password),
         message,
         submit)));
 }
