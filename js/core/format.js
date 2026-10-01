@@ -49,6 +49,14 @@ export function addMonths(iso, count) {
   return toISO(date);
 }
 
+export function monthsBetween(from, to) {
+  return (Number(to.slice(0, 4)) - Number(from.slice(0, 4))) * 12 + Number(to.slice(5, 7)) - Number(from.slice(5, 7));
+}
+
+export function daysBetween(from, to) {
+  return Math.round((fromISO(to) - fromISO(from)) / 86400000);
+}
+
 export function monthEnd(iso) {
   const date = fromISO(addMonths(iso, 1));
   date.setDate(0);

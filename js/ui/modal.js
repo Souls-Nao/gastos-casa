@@ -63,6 +63,7 @@ export function openFormModal({ title, body, submitLabel = 'Guardar', onSubmit, 
     h('button', { class: 'btn btn--ghost', type: 'button', onclick: () => modal.close() }, 'Cancelar'),
     submit));
   const modal = openModal({ title, body: form });
+  return modal;
 }
 
 export function confirmDialog({ title, message, confirmLabel = 'Aceptar', danger = false }) {

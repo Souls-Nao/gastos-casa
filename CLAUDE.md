@@ -163,8 +163,8 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 - [x] Bloque 8 — Calendario. `#/calendario` (`?dia=aaaa-mm-dd` guarda el día elegido): mes con total por día, cuatro niveles de color por rango entre los días con gasto, y detalle del día (por categoría y subcategoría, tickets, artículos). RPC `day_detail(p_day)` (migración `007_day_detail.sql`, aplicada y probada). Probado en local con el arnés en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
 - [x] Bloque 9 — Ingresos. `#/ingresos`: listado del mes, total, desglose por categoría, alta/edición/eliminación en ventana. Sin migración (usa la tabla `incomes`). Requiere conexión para guardar. Probado en local con el arnés y el guardado directo en la base (revertido); la prueba con datos reales la hace el usuario en Pages
 - [x] Bloque 10 — Presupuestos. `#/presupuestos`: plan del mes (total a usar, saldo inicial, todo el mes o quincenas), presupuesto por categoría y subcategoría, barras gastado / mes anterior / límite, alertas al 80% y 100%, sugerencia por promedio. RPC `budget_overview(p_month)` y `set_budget(p_month, p_category, p_amount, p_q1)` (migración `008_budgets.sql`, aplicada y probada). Requiere conexión para guardar. Probado en local con el arnés en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
-- [ ] Bloque 11 — Pagos del mes ← **siguiente**
-- [ ] Bloque 12 — Ahorro y reserva
+- [x] Bloque 11 — Pagos del mes. `#/pagos` (pagos del mes con barra pagado/pendiente, avisos de vencimiento, registrar y deshacer pagos, pagos únicos, ajuste del monto de la tarjeta), `#/pagos?tab=fijos` (gastos fijos recurrentes) y `#/pagos?tab=msi` (compras a meses activas, y alta manual de las que ya se venían pagando). Migración `009_payments.sql` (aplicada y probada). Requiere conexión para guardar. Probado en local con el arnés en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
+- [ ] Bloque 12 — Ahorro y reserva ← **siguiente**
 - [ ] Bloque 13 — Dashboard
 - [ ] Bloque 14 — Lista de compras
 - [ ] Bloque 15 — Extras
@@ -191,6 +191,17 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 - `ui/`: `icon(nombre, tamaño)`, `toast(mensaje, 'info' | 'error')`, `openModal({ title, body, actions })` (devuelve el `<dialog>`; `actions`: `{ label, value, variant }`), `confirmDialog({ title, message, confirmLabel, danger })` → `Promise<boolean>`, `createMonthNav(onShift)` → `{ element, setMonth }`, `createShell`.
 - CSS: `tokens.css` (colores claro/oscuro, espacios, radios), `components.css` (`btn` + `btn--primary/ghost/danger/icon`, `card`, `field`, `list`, `empty`, `month-nav`, `modal`, `toast`), `layout.css` (shell), `views/*.css` (cada archivo nuevo se enlaza en `index.html`).
 - Pruebas: Claude no escribe la contraseña y el usuario no ve el panel de navegador de la app. Para probar vistas con sesión en local existe `.claude/dev-harness.js` (no se sube al repo; si falta, hay que recrearlo): simula PostgREST en memoria (`db`, `calls`, `rpc`) y monta el shell. Uso desde la consola de `http://localhost:8080/index.html`: `const hx = await import('/.claude/dev-harness.js'); window.hx = hx; await hx.mount('#/catalogos')`. Para tablas o RPC nuevos, agrega datos a `hx.db` / `hx.rpc`. La prueba con datos reales la hace el usuario en Pages.
+
+### Pagos del mes (bloque 11)
+
+- RPC nuevas: `month_obligations(p_month)` (pagos del mes con `paid`, `pending` y `payments[]`), `pay_obligation(p)` (`{ id, obligation_id, amount, paid_on, payment_method_id, note }`, idempotente por `id`), `undo_payment(p_payment)`, `save_recurring(p)`, `delete_recurring(p_id)`, `save_msi_plan(p)` (solo planes sin ticket).
+- Regla del dinero al pagar: un pago **fijo** o **único con categoría** crea un ticket (cuenta como gasto y sale en Historial y Calendario) y guarda su `ticket_id`; un pago de **tarjeta**, **MSI** o **único sin categoría** solo baja el disponible. `undo_payment` borra también el ticket generado. Tarjeta y MSI no se pueden pagar con un método de crédito.
+- Editar el monto o la fecha de un pago del mes lo marca `manual` (no lo pisa `ensure_month`); en tarjetas, `useAutomaticAmount(id)` vuelve al cálculo del corte. `save_recurring` borra los pagos futuros no pagados y no manuales del gasto fijo para que se regeneren; `delete_recurring` conserva como pago único los que ya tienen pagos.
+- `data/payments.js`: `OBLIGATION_KINDS`, `FREQUENCIES`, `listObligations(mes)`, `createsExpense(pago)`, `payObligation`, `undoPayment`, `createObligation`, `updateObligation`, `deleteObligation`, `useAutomaticAmount`, `listRecurring`, `saveRecurring`, `deleteRecurring`, `listMsiPlans`, `saveMsiPlan`, `deleteMsiPlan`.
+- `core/format.js`: `monthsBetween(desde, hasta)`, `daysBetween(desde, hasta)`. `openFormModal` ahora devuelve `{ close }`.
+- Avisos de vencimiento (en `views/payments/month.js`, `dueTag`): "Vencido", "Vence hoy", "Vence mañana / en N días" (hasta 5). El dashboard debe mostrar estos mismos avisos.
+- CSS: `views/payments.css` (`obligation`). La tarjeta de resumen reutiliza `plan` y `day__header`.
+- El arnés simula `ensure_month` (fijos y MSI), `month_obligations`, `pay_obligation`, `undo_payment`, `save_recurring`, `delete_recurring`, `save_msi_plan` y sus tablas.
 
 ### Presupuestos (bloque 10)
 

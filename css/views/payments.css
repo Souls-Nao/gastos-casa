@@ -1,0 +1,20 @@
+.obligation {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+}
+
+.obligation > .row {
+  min-height: 0;
+  padding: 0;
+}
+
+.obligation__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--touch);
+  color: var(--muted);
+  font-size: var(--text-s);
+}
