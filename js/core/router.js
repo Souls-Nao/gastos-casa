@@ -50,6 +50,10 @@ async function render() {
   }
 }
 
+export function navigate(path) {
+  location.hash = path;
+}
+
 export function startRouter(options) {
   config = options;
   table = options.routes.map(compile);

@@ -157,8 +157,8 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
   - **Pospuesto por decisión del usuario (01/10/2026), hasta nuevo aviso:** apagar en Authentication → Sign In / Providers **Allow new users to sign up** y **Allow anonymous sign-ins**. No insistas en cada bloque; recuérdalo en el bloque 16 (revisión de seguridad) o si él lo menciona. Se comprueba en `/auth/v1/settings`: `disable_signup` y `external.anonymous_users`
 - [x] Bloque 3 — Núcleo. Probado en local en escritorio (1280px) y móvil (375px), tema claro y oscuro: login, menú lateral, barra inferior, router, vistas Inicio / Más / pendientes, modal y toast. Las vistas con sesión se probaron montando el shell a mano y simulando las respuestas RPC; **el flujo real con sesión (entrar, recargar y seguir dentro, cerrar sesión) lo prueba el usuario en Pages**
 - [x] Bloque 4 — Catálogos. `#/catalogos?tab=categorias|tiendas|pagos|unidades` (categorías además con `&kind=expense|income`). Todo se puede ocultar/mostrar y eliminar (botón **Eliminar** dentro del formulario de edición; RPC `catalog_usage(p_table, p_id)` de la migración `004_catalog_usage.sql` cuenta los registros afectados). Tabla nueva `units` (migración `003_units.sql`, aplicada; `seed_defaults` ahora también siembra 12 unidades). Probado en local con el arnés de pruebas en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
-- [ ] Bloque 5 — Captura de tickets ← **siguiente**
-- [ ] Bloque 6 — PWA y offline
+- [x] Bloque 5 — Captura de tickets. `#/ticket` (nuevo), `#/ticket/<id>` (editar, con **Repetir compra** y **Eliminar**), `#/ticket?repetir=<id>`. RPC `save_ticket(p jsonb)` (migración `005_save_ticket.sql`, aplicada y probada): guarda ticket, artículos y plan MSI en una sola transacción y es idempotente. Inicio muestra "Últimos tickets del mes". Probado en local con el arnés en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
+- [ ] Bloque 6 — PWA y offline ← **siguiente**
 - [ ] Bloque 7 — Historial
 - [ ] Bloque 8 — Calendario
 - [ ] Bloque 9 — Ingresos
@@ -191,6 +191,17 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 - `ui/`: `icon(nombre, tamaño)`, `toast(mensaje, 'info' | 'error')`, `openModal({ title, body, actions })` (devuelve el `<dialog>`; `actions`: `{ label, value, variant }`), `confirmDialog({ title, message, confirmLabel, danger })` → `Promise<boolean>`, `createMonthNav(onShift)` → `{ element, setMonth }`, `createShell`.
 - CSS: `tokens.css` (colores claro/oscuro, espacios, radios), `components.css` (`btn` + `btn--primary/ghost/danger/icon`, `card`, `field`, `list`, `empty`, `month-nav`, `modal`, `toast`), `layout.css` (shell), `views/*.css` (cada archivo nuevo se enlaza en `index.html`).
 - Pruebas: Claude no escribe la contraseña y el usuario no ve el panel de navegador de la app. Para probar vistas con sesión en local existe `.claude/dev-harness.js` (no se sube al repo; si falta, hay que recrearlo): simula PostgREST en memoria (`db`, `calls`, `rpc`) y monta el shell. Uso desde la consola de `http://localhost:8080/index.html`: `const hx = await import('/.claude/dev-harness.js'); window.hx = hx; await hx.mount('#/catalogos')`. Para tablas o RPC nuevos, agrega datos a `hx.db` / `hx.rpc`. La prueba con datos reales la hace el usuario en Pages.
+
+### Captura de tickets (bloque 5)
+
+- `save_ticket(p)` recibe `{ id, purchased_on, purchased_at, store_id, payment_method_id, discount, note, items: [{ id, name, category_id, quantity, unit, unit_price }], msi: null | { months, first_month } }`. Borra los artículos que ya no vienen, actualiza categoría y unidad del producto con lo último capturado, y al cambiar el plan MSI borra sus pagos no pagados para que `ensure_month` los regenere. Una sola llamada = una entrada de la cola offline del bloque 6.
+- `data/tickets.js`: `getTicket(id)` (devuelve la misma forma que recibe `save_ticket`), `listTickets({ from, to, limit })` (con `stores`, `payment_methods`, `ticket_items(name)`, `msi_plans(months)` embebidos; el bloque 7 le agrega filtros), `saveTicket`, `deleteTicket` (ambas llaman `ensureMonth`). `data/products.js`: `listProducts()` (de `v_product_stats`, sin ocultos, más comprados primero).
+- `views/ticket.js`: estado = el mismo objeto que se envía. Borrador automático en `localStorage` (`gastos:ticket-draft`, solo tickets nuevos) y último método de pago (`gastos:last-payment-method`). La categoría es obligatoria en cada artículo. MSI solo con métodos de tipo crédito; el primer pago se calcula con el día de corte y de pago de la tarjeta. No se usa `tickets.title`.
+- `core/`: `navigate(ruta)` en `router.js`; `readLocal`, `writeLocal`, `removeLocal` en `local.js`; `nowTime`, `monthEnd`, `normalize` (sin acentos, minúsculas) en `format.js`.
+- `sections.js`: una sección con `hidden: true` es ruta sin entrada en menús; `parent` indica qué entrada resaltar.
+- `ui/`: `autocomplete(input, { search, render, onSelect })` (devuelve el contenedor), `categorySelect(arbol, valor, fallback)`, `selectInput(opciones, valor, props)`, `ticketRow(ticket)` (fila enlazada a la edición; reutilizable en Historial y Calendario).
+- CSS nuevo en `components.css`: `notice`, `check`, `autocomplete`, `section-title`, `list__empty`; `views/ticket.css`.
+- El arnés `.claude/dev-harness.js` ya simula `tickets`, `v_product_stats` y `save_ticket`.
 
 ### Módulos de catálogos (bloque 4)
 

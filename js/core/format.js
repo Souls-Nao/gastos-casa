@@ -19,6 +19,11 @@ export function todayISO() {
   return toISO(new Date());
 }
 
+export function nowTime() {
+  const now = new Date();
+  return `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+}
+
 export function monthStart(iso) {
   return `${iso.slice(0, 7)}-01`;
 }
@@ -27,6 +32,16 @@ export function addMonths(iso, count) {
   const date = fromISO(monthStart(iso));
   date.setMonth(date.getMonth() + count);
   return toISO(date);
+}
+
+export function monthEnd(iso) {
+  const date = fromISO(addMonths(iso, 1));
+  date.setDate(0);
+  return toISO(date);
+}
+
+export function normalize(text) {
+  return text.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim();
 }
 
 export function formatDate(iso) {

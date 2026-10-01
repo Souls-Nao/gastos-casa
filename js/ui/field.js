@@ -16,3 +16,10 @@ export function fieldGroup(label, control) {
 export function textInput(props) {
   return h('input', { class: 'field__input', type: 'text', ...props });
 }
+
+export function selectInput(options, value, props) {
+  const select = h('select', { class: 'field__input', ...props },
+    options.map((option) => h('option', { value: option.value }, option.label)));
+  select.value = value ?? '';
+  return select;
+}

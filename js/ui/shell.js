@@ -7,7 +7,7 @@ function link(section, className, content) {
 }
 
 export function createShell({ sections, email, date }) {
-  const menu = sections.filter((section) => !section.mobileOnly)
+  const menu = sections.filter((section) => !section.mobileOnly && !section.hidden)
     .sort((a, b) => Boolean(b.primary) - Boolean(a.primary));
   const tabs = sections.filter((section) => section.tab).sort((a, b) => a.tab - b.tab);
   const title = h('h1', { class: 'topbar__title' });
@@ -52,8 +52,9 @@ export function createShell({ sections, email, date }) {
   function setActive(section) {
     title.textContent = section.label;
     document.title = `${section.label} · Gastos de Casa`;
-    mark(sidebar, section.path);
-    mark(tabbar, section.tab ? section.path : more.path);
+    const active = section.parent ?? section.path;
+    mark(sidebar, active);
+    mark(tabbar, tabs.some((tab) => tab.path === active) ? active : more.path);
   }
 
   return { element, outlet, setActive };

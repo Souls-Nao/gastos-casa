@@ -7,7 +7,7 @@ import { icon } from '../ui/icon.js';
 export default function more(root) {
   root.append(
     h('nav', { class: 'list', 'aria-label': 'Más secciones' },
-      sections.filter((section) => !section.tab).map((section) =>
+      sections.filter((section) => !section.tab && !section.hidden).map((section) =>
         h('a', { class: 'list__item', href: `#${section.path}` },
           icon(section.icon),
           h('span', { class: 'list__text' }, section.label),

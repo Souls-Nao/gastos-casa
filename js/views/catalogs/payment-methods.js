@@ -4,7 +4,7 @@ import {
   PAYMENT_TYPES, createPaymentMethod, deletePaymentMethod, listPaymentMethods, paymentMethodUsage, updatePaymentMethod,
 } from '../../data/payment-methods.js';
 import { categoryIcon } from '../../ui/category-icon.js';
-import { field, textInput } from '../../ui/field.js';
+import { field, selectInput, textInput } from '../../ui/field.js';
 import { icon } from '../../ui/icon.js';
 import { hideButton, iconButton, listRow } from '../../ui/list-row.js';
 import { confirmRemoval, openFormModal, openModal } from '../../ui/modal.js';
@@ -49,9 +49,9 @@ export default async function paymentMethods(root) {
 
   function edit(method) {
     const name = textInput({ required: true, maxLength: 60, autofocus: true, value: method?.name ?? '' });
-    const type = h('select', { class: 'field__input' },
-      Object.entries(PAYMENT_TYPES).map(([value, { label }]) => h('option', { value }, label)));
-    type.value = method?.type ?? 'debit';
+    const type = selectInput(
+      Object.entries(PAYMENT_TYPES).map(([value, { label }]) => ({ value, label })),
+      method?.type ?? 'debit');
     const closing = dayInput(method?.closing_day);
     const due = dayInput(method?.due_day);
     const limit = textInput({ type: 'number', inputMode: 'decimal', min: 0, step: 0.01, value: method?.credit_limit ?? '' });

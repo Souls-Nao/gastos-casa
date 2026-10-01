@@ -1,0 +1,127 @@
+.ticket {
+  display: grid;
+  gap: var(--space-4);
+  width: 100%;
+  max-width: 1000px;
+  margin-inline: auto;
+}
+
+.ticket__header {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.ticket__header > .form__section {
+  grid-column: 1 / -1;
+}
+
+.ticket__items {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.ticket-item {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr var(--touch);
+  grid-template-areas:
+    "name name name remove"
+    "quantity unit price price"
+    "category category total total";
+  gap: var(--space-2) var(--space-3);
+  align-items: end;
+  padding: var(--space-3);
+}
+
+.ticket-item__name {
+  grid-area: name;
+}
+
+.ticket-item__remove {
+  grid-area: remove;
+}
+
+.ticket-item__quantity {
+  grid-area: quantity;
+}
+
+.ticket-item__unit {
+  grid-area: unit;
+}
+
+.ticket-item__price {
+  grid-area: price;
+}
+
+.ticket-item__category {
+  grid-area: category;
+  min-width: 0;
+}
+
+.ticket-item__total {
+  display: grid;
+  grid-area: total;
+  gap: var(--space-1);
+  justify-items: end;
+}
+
+.ticket-item__amount {
+  display: grid;
+  align-items: center;
+  min-height: var(--touch);
+  font-size: 1.125rem;
+}
+
+.ticket__add {
+  justify-self: start;
+}
+
+.ticket__summary {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.ticket__line {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+}
+
+.ticket__bar {
+  position: sticky;
+  bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom) + var(--space-2));
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-l);
+  box-shadow: var(--shadow-2);
+}
+
+.ticket__bar-total {
+  display: grid;
+}
+
+.ticket__total {
+  font-size: var(--text-xl);
+  line-height: 1.2;
+}
+
+@media (min-width: 900px) {
+  .ticket__header {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .ticket-item {
+    grid-template-columns: minmax(0, 2.2fr) 84px 96px 112px minmax(0, 1.6fr) 104px var(--touch);
+    grid-template-areas: "name quantity unit price category total remove";
+  }
+
+  .ticket__bar {
+    bottom: var(--space-4);
+  }
+}
