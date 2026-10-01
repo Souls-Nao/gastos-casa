@@ -1,12 +1,12 @@
 import { h } from '../../core/dom.js';
 import { on } from '../../core/events.js';
-import { addMonths, daysBetween, formatDate, money, monthStart, todayISO } from '../../core/format.js';
+import { addMonths, formatDate, money, monthStart, todayISO } from '../../core/format.js';
 import { getState, watch } from '../../core/store.js';
 import { categoryTree, listCategories } from '../../data/categories.js';
 import { selectMonth } from '../../data/months.js';
 import { listPaymentMethods } from '../../data/payment-methods.js';
 import {
-  OBLIGATION_KINDS, createObligation, createsExpense, deleteObligation, listObligations, payObligation,
+  OBLIGATION_KINDS, createObligation, createsExpense, deleteObligation, dueState, dueText, listObligations, payObligation,
   undoPayment, updateObligation, useAutomaticAmount,
 } from '../../data/payments.js';
 import { statusMeter } from '../../ui/budget-bars.js';
@@ -24,12 +24,10 @@ function moneyInput(props) {
 }
 
 function dueTag(obligation, today) {
-  if (obligation.pending <= 0) return h('span', { class: 'tag tag--good' }, 'Pagado');
-  if (!obligation.due_date) return null;
-  const days = daysBetween(today, obligation.due_date);
-  if (days < 0) return h('span', { class: 'tag tag--danger' }, 'Vencido');
-  if (days === 0) return h('span', { class: 'tag tag--warning' }, 'Vence hoy');
-  if (days <= 5) return h('span', { class: 'tag tag--warning' }, days === 1 ? 'Vence mañana' : `Vence en ${days} días`);
+  const { state, days } = dueState(obligation, today);
+  if (state === 'paid') return h('span', { class: 'tag tag--good' }, 'Pagado');
+  if (state === 'overdue') return h('span', { class: 'tag tag--danger' }, 'Vencido');
+  if (state === 'soon') return h('span', { class: 'tag tag--warning' }, `Vence ${dueText(days)}`);
   return null;
 }
 

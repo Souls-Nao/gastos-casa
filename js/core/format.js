@@ -17,8 +17,12 @@ export function money(value) {
   return moneyFormat.format(Number(value) || 0);
 }
 
+export function wholeMoney(value) {
+  return wholeFormat.format(value);
+}
+
 export function compactMoney(value) {
-  return value >= 10000 ? `$${(value / 1000).toFixed(1)}k` : wholeFormat.format(value);
+  return value >= 10000 ? `$${(value / 1000).toFixed(1)}k` : wholeMoney(value);
 }
 
 export function dayLabel(iso) {
@@ -46,6 +50,12 @@ export function monthStart(iso) {
 export function addMonths(iso, count) {
   const date = fromISO(monthStart(iso));
   date.setMonth(date.getMonth() + count);
+  return toISO(date);
+}
+
+export function addDays(iso, count) {
+  const date = fromISO(iso);
+  date.setDate(date.getDate() + count);
   return toISO(date);
 }
 

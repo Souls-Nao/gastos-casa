@@ -1,3 +1,4 @@
+import { daysBetween } from '../core/format.js';
 import { cachedRead } from '../core/offline.js';
 import { getState } from '../core/store.js';
 import { rpc } from '../core/supabase.js';
@@ -21,6 +22,19 @@ export const FREQUENCIES = {
 
 export function listObligations(month) {
   return cachedRead(`obligations:${month}`, () => rpc('month_obligations', { p_month: month }));
+}
+
+export function dueState(obligation, today) {
+  if (obligation.pending <= 0) return { state: 'paid' };
+  if (!obligation.due_date) return { state: 'open' };
+  const days = daysBetween(today, obligation.due_date);
+  if (days < 0) return { state: 'overdue', days };
+  return { state: days <= 5 ? 'soon' : 'open', days };
+}
+
+export function dueText(days) {
+  if (days === 0) return 'hoy';
+  return days === 1 ? 'mañana' : `en ${days} días`;
 }
 
 export function createsExpense(obligation) {

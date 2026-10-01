@@ -1,35 +1,16 @@
 import { h } from '../core/dom.js';
 import { on } from '../core/events.js';
-import { addMonths, dayLabel, money, monthStart, todayISO } from '../core/format.js';
+import { addMonths, money, monthStart, todayISO } from '../core/format.js';
 import { getState, watch } from '../core/store.js';
-import { getDailyTotals, getDayDetail } from '../data/calendar.js';
-import { listCategories } from '../data/categories.js';
+import { getDailyTotals } from '../data/calendar.js';
 import { selectMonth } from '../data/months.js';
 import { createCalendar } from '../ui/calendar.js';
-import { categoryIcon } from '../ui/category-icon.js';
 import { createMonthNav } from '../ui/month-nav.js';
-import { ticketRow } from '../ui/ticket-row.js';
 import { toast } from '../ui/toast.js';
-import { openTicketDetail } from './ticket-detail.js';
-
-const NO_CATEGORY = { id: null, name: 'Sin categoría', icon: 'circle-help', color: '#7D8794' };
+import { dayDetail } from './day-detail.js';
 
 function countLabel(count) {
   return count === 1 ? '1 ticket' : `${count} tickets`;
-}
-
-function breakdown(tickets, categories) {
-  const byId = new Map(categories.map((category) => [category.id, category]));
-  const groups = new Map();
-  for (const item of tickets.flatMap((ticket) => ticket.ticket_items)) {
-    const category = byId.get(item.category_id);
-    const parent = (category?.parent_id ? byId.get(category.parent_id) : category) ?? NO_CATEGORY;
-    const group = groups.get(parent.id) ?? { category: parent, total: 0, children: new Map() };
-    group.total += item.net_amount;
-    if (category?.parent_id) group.children.set(category.name, (group.children.get(category.name) ?? 0) + item.net_amount);
-    groups.set(parent.id, group);
-  }
-  return [...groups.values()].sort((a, b) => b.total - a.total);
 }
 
 export default function calendar(root, { query }) {
@@ -53,39 +34,8 @@ export default function calendar(root, { query }) {
   });
 
   async function showDay(day) {
-    const [tickets, categories] = await Promise.all([getDayDetail(day), listCategories()]);
-    if (day !== selected) return;
-    const total = tickets.reduce((sum, ticket) => sum + ticket.total, 0);
-    const groups = breakdown(tickets, categories);
-    detail.replaceChildren(
-      h('div', { class: 'day__header' },
-        h('div', null,
-          h('h2', { class: 'section-title' }, dayLabel(day)),
-          h('span', { class: 'row__subtitle' }, tickets.length ? countLabel(tickets.length) : 'Sin compras este día')),
-        h('strong', { class: 'day__total money' }, money(total))),
-      ...(tickets.length ? [
-        h('h3', { class: 'detail__heading' }, 'Por categoría'),
-        h('div', { class: 'list' }, groups.map((group) => h('div', { class: 'day__category' },
-          h('div', { class: 'row row--padded' },
-            categoryIcon(group.category, 36),
-            h('div', { class: 'row__text' },
-              h('span', { class: 'row__title' }, group.category.name),
-              h('span', { class: 'meter' },
-                h('span', { class: 'meter__fill', style: `width:${Math.max(group.total / total * 100, 2)}%;background:${group.category.color}` }))),
-            h('strong', { class: 'money' }, money(group.total))),
-          [...group.children].map(([name, amount]) => h('div', { class: 'day__sub' },
-            h('span', null, name), h('span', { class: 'money' }, money(amount))))))),
-        h('h3', { class: 'detail__heading' }, 'Tickets'),
-        h('div', { class: 'list' }, tickets.map((ticket) => ticketRow(ticket, openTicketDetail))),
-        h('h3', { class: 'detail__heading' }, 'Artículos'),
-        h('ul', { class: 'detail__items card day__items' },
-          tickets.flatMap((ticket) => ticket.ticket_items).map((item) => h('li', { class: 'detail__item' },
-            h('div', { class: 'row__text' },
-              h('span', { class: 'row__title' }, item.name),
-              h('span', { class: 'row__subtitle' },
-                `${item.quantity} ${item.unit} × ${money(item.unit_price)} · ${categories.find((category) => category.id === item.category_id)?.name ?? 'Sin categoría'}`)),
-            h('strong', { class: 'money' }, money(item.amount))))),
-      ] : []));
+    const { nodes } = await dayDetail(day);
+    if (day === selected) detail.replaceChildren(...nodes);
   }
 
   async function load(month) {

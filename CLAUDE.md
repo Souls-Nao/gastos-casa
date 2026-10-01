@@ -165,8 +165,8 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 - [x] Bloque 10 — Presupuestos. `#/presupuestos`: plan del mes (total a usar, saldo inicial, todo el mes o quincenas), presupuesto por categoría y subcategoría, barras gastado / mes anterior / límite, alertas al 80% y 100%, sugerencia por promedio. RPC `budget_overview(p_month)` y `set_budget(p_month, p_category, p_amount, p_q1)` (migración `008_budgets.sql`, aplicada y probada). Requiere conexión para guardar. Probado en local con el arnés en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
 - [x] Bloque 11 — Pagos del mes. `#/pagos` (pagos del mes con barra pagado/pendiente, avisos de vencimiento, registrar y deshacer pagos, pagos únicos, ajuste del monto de la tarjeta), `#/pagos?tab=fijos` (gastos fijos recurrentes) y `#/pagos?tab=msi` (compras a meses activas, y alta manual de las que ya se venían pagando). Migración `009_payments.sql` (aplicada y probada). Requiere conexión para guardar. Probado en local con el arnés en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
 - [x] Bloque 12 — Ahorro y reserva. `#/ahorro` (metas con cuota mensual automática, progreso, guardar/retirar, movimientos, archivar y eliminar) y `#/ahorro?tab=reserva` (saldo, guardar/usar, movimientos, cierre de meses terminados con confirmación y reapertura). Migración `010_reopen_month.sql` (aplicada y probada). Requiere conexión para guardar. Probado en local con el arnés en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
-- [ ] Bloque 13 — Dashboard ← **siguiente**
-- [ ] Bloque 14 — Lista de compras
+- [x] Bloque 13 — Dashboard. Inicio con tres vistas: `#/` o `#/?vista=general` (mes en curso: seis indicadores, alertas, tendencia de 6 a 12 meses, productos más comprados), `#/?vista=dia&dia=aaaa-mm-dd` (gasto del día, cuánto se puede gastar por día, detalle) y `#/?vista=mes` (dona por categoría con subcategorías, comparación con el mes anterior, gastos hormiga, últimos tickets). RPC `monthly_trend(p_months, p_until)` (migración `011_monthly_trend.sql`, aplicada y probada). Probado en local con el arnés en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
+- [ ] Bloque 14 — Lista de compras ← **siguiente**
 - [ ] Bloque 15 — Extras
 - [ ] Bloque 16 — Pulido y QA
 
@@ -191,6 +191,22 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 - `ui/`: `icon(nombre, tamaño)`, `toast(mensaje, 'info' | 'error')`, `openModal({ title, body, actions })` (devuelve el `<dialog>`; `actions`: `{ label, value, variant }`), `confirmDialog({ title, message, confirmLabel, danger })` → `Promise<boolean>`, `createMonthNav(onShift)` → `{ element, setMonth }`, `createShell`.
 - CSS: `tokens.css` (colores claro/oscuro, espacios, radios), `components.css` (`btn` + `btn--primary/ghost/danger/icon`, `card`, `field`, `list`, `empty`, `month-nav`, `modal`, `toast`), `layout.css` (shell), `views/*.css` (cada archivo nuevo se enlaza en `index.html`).
 - Pruebas: Claude no escribe la contraseña y el usuario no ve el panel de navegador de la app. Para probar vistas con sesión en local existe `.claude/dev-harness.js` (no se sube al repo; si falta, hay que recrearlo): simula PostgREST en memoria (`db`, `calls`, `rpc`) y monta el shell. Uso desde la consola de `http://localhost:8080/index.html`: `const hx = await import('/.claude/dev-harness.js'); window.hx = hx; await hx.mount('#/catalogos')`. Para tablas o RPC nuevos, agrega datos a `hx.db` / `hx.rpc`. La prueba con datos reales la hace el usuario en Pages.
+
+### Dashboard (bloque 13)
+
+- `views/home.js` es el contenedor con pestañas; las vistas están en `views/dashboard/` (`general.js`, `day.js`, `month.js`, `alerts.js`). General siempre muestra el mes en curso (no el mes seleccionado); Mes usa el mes del store; Día guarda el día en la URL.
+- `monthly_trend(p_months, p_until)` → `[{ month, spent, incomes }]`, del más antiguo al más reciente. La gráfica recorta los meses vacíos del principio pero muestra al menos 6.
+- Proyección de fin de mes = gastado / día del mes × días del mes; solo desde el día 5 (antes se muestra "—").
+- "Gastos hormiga" = la categoría de gasto cuyo nombre contiene "hormiga". Si el usuario la renombra o elimina, la tarjeta desaparece.
+- Alertas (`buildAlerts`): pagos vencidos o por vencer (`dueState` y `dueText` de `data/payments.js`), presupuestos al 80% y 100% (`budgetStatus`), proyección arriba del plan y meses terminados sin cerrar. Cada alerta enlaza a su sección.
+- `data/dashboard.js`: `getTrend(meses)`, `categoryBreakdown(articulos, categorias)`. `data/categories.js`: `NO_CATEGORY`. `views/day-detail.js`: `dayDetail(dia)` → `{ total, nodes }` (lo usan Calendario y la vista Día).
+- `ui/chart.js`: `trendChart({ label, labels, series, formatY, formatTick })` (dos series con `--chart-1` y `--chart-2`) y `donutChart({ label, segments, formatValue, center, onSelect })` (máximo 5 categorías + "Otras", con los colores propios de cada categoría y la lista al lado como leyenda). `ui/stat.js`: `statTile({ label, value, hint, featured })`, `deltaBadge(actual, anterior)` (subir = rojo, bajar = verde, porque se usa para gasto).
+- Colores de series validados con `validate_palette.py` de la skill `dataviz` (se ejecuta con `PYTHONIOENCODING=utf-8`): claro `#1f8a5f` / `#2a78d6` sobre `#ffffff`, oscuro `#2fa876` / `#4f8fe0` sobre `#171e25`. Verde + naranja no pasa la prueba de daltonismo en claro.
+- `core/dom.js`: `fill(padre, ...hijos)` reemplaza el contenido ignorando `null` y `false`. **Úsalo en vez de `replaceChildren` cuando algún hijo sea condicional** (`replaceChildren` y `append` nativos escriben el texto "null").
+- `core/format.js`: `wholeMoney`, `addDays`. CSS en `views/home.css`: `stat`, `delta`, `alert`, `trend`, `donut`, `chart--donut`, `legend__line`.
+- Al probar en local tras editar CSS o módulos ya cargados, Chrome puede servirlos de su caché en memoria: fuerza con `fetch(archivo, { cache: 'reload' })` y recarga, o navega con otra query.
+- Pendiente para el bloque 16: el service worker sirve red primero con caída a caché a los 3 s por archivo; con mala conexión justo después de publicar podría mezclar archivos nuevos y viejos. Evaluar decidir por carga completa (si la navegación salió de caché, servir todo de caché).
+- El arnés tiene `hx.seedDemo()` (datos de demostración para todas las secciones), `hx.trend` y simula `monthly_trend` y un `month_summary` calculado.
 
 ### Ahorro y reserva (bloque 12)
 

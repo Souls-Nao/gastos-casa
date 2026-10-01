@@ -1,3 +1,7 @@
+function present(children) {
+  return children.flat().filter((child) => child != null && child !== false);
+}
+
 export function h(tag, props, ...children) {
   const element = document.createElement(tag);
   for (const [key, value] of Object.entries(props ?? {})) {
@@ -6,6 +10,10 @@ export function h(tag, props, ...children) {
     else if (key in element) element[key] = value;
     else element.setAttribute(key, value === true ? '' : value);
   }
-  element.append(...children.flat().filter((child) => child != null && child !== false));
+  element.append(...present(children));
   return element;
+}
+
+export function fill(parent, ...children) {
+  parent.replaceChildren(...present(children));
 }

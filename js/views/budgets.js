@@ -1,4 +1,4 @@
-import { h } from '../core/dom.js';
+import { fill, h } from '../core/dom.js';
 import { on } from '../core/events.js';
 import { addMonths, money, monthLabel } from '../core/format.js';
 import { getState, watch } from '../core/store.js';
@@ -179,7 +179,7 @@ export default function budgets(root) {
       .map((category) => ({ category, row: rowOf(category), status: budgetStatus(rowOf(category).spent, rowOf(category).budget) }))
       .filter((entry) => entry.status === 'over' || entry.status === 'near');
 
-    content.replaceChildren(
+    fill(content,
       h('section', { class: 'card plan' },
         h('div', { class: 'plan__header' },
           h('h2', { class: 'section-title' }, `Plan de ${monthLabel(month).toLowerCase()}`),

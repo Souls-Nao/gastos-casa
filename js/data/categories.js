@@ -1,6 +1,8 @@
 import { supabase, unwrap } from '../core/supabase.js';
 import { deleteRow, insertRow, listRows, updateRow, usageCount } from './crud.js';
 
+export const NO_CATEGORY = { id: null, name: 'Sin categoría', icon: 'circle-help', color: '#7D8794' };
+
 export function listCategories() {
   return listRows('categories', 'sort_order', 'name');
 }

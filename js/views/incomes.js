@@ -2,7 +2,7 @@ import { h } from '../core/dom.js';
 import { on } from '../core/events.js';
 import { addMonths, formatDate, money, monthLabel, monthStart, todayISO } from '../core/format.js';
 import { getState, watch } from '../core/store.js';
-import { listCategories } from '../data/categories.js';
+import { NO_CATEGORY, listCategories } from '../data/categories.js';
 import { deleteIncome, listIncomes, saveIncome } from '../data/incomes.js';
 import { selectMonth } from '../data/months.js';
 import { listPaymentMethods } from '../data/payment-methods.js';
@@ -12,8 +12,6 @@ import { icon } from '../ui/icon.js';
 import { confirmRemoval, openFormModal } from '../ui/modal.js';
 import { createMonthNav } from '../ui/month-nav.js';
 import { toast } from '../ui/toast.js';
-
-const NO_CATEGORY = { id: null, name: 'Sin categoría', icon: 'circle-help', color: '#7D8794' };
 
 export default function incomes(root) {
   const summary = h('p', { class: 'history__summary' });
