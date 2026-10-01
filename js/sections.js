@@ -10,7 +10,7 @@ export const sections = [
   { path: '/ingresos', label: 'Ingresos', icon: 'wallet', view: () => import('./views/incomes.js') },
   { path: '/presupuestos', label: 'Presupuestos', icon: 'chart-pie', view: () => import('./views/budgets.js') },
   { path: '/pagos', label: 'Pagos del mes', icon: 'credit-card', view: () => import('./views/payments.js') },
-  { path: '/ahorro', label: 'Ahorro y reserva', icon: 'piggy-bank', block: 12, view: pending },
+  { path: '/ahorro', label: 'Ahorro y reserva', icon: 'piggy-bank', view: () => import('./views/savings.js') },
   { path: '/lista', label: 'Lista de compras', short: 'Lista', icon: 'list-checks', tab: 4, block: 14, view: pending },
   { path: '/catalogos', label: 'Catálogos', icon: 'tags', view: () => import('./views/catalogs.js') },
   { path: '/mas', label: 'Más', icon: 'ellipsis', tab: 5, mobileOnly: true, view: () => import('./views/more.js') },

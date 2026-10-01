@@ -1,0 +1,9 @@
+.goal__stats {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.goal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}

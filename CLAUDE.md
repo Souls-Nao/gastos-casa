@@ -164,8 +164,8 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 - [x] Bloque 9 — Ingresos. `#/ingresos`: listado del mes, total, desglose por categoría, alta/edición/eliminación en ventana. Sin migración (usa la tabla `incomes`). Requiere conexión para guardar. Probado en local con el arnés y el guardado directo en la base (revertido); la prueba con datos reales la hace el usuario en Pages
 - [x] Bloque 10 — Presupuestos. `#/presupuestos`: plan del mes (total a usar, saldo inicial, todo el mes o quincenas), presupuesto por categoría y subcategoría, barras gastado / mes anterior / límite, alertas al 80% y 100%, sugerencia por promedio. RPC `budget_overview(p_month)` y `set_budget(p_month, p_category, p_amount, p_q1)` (migración `008_budgets.sql`, aplicada y probada). Requiere conexión para guardar. Probado en local con el arnés en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
 - [x] Bloque 11 — Pagos del mes. `#/pagos` (pagos del mes con barra pagado/pendiente, avisos de vencimiento, registrar y deshacer pagos, pagos únicos, ajuste del monto de la tarjeta), `#/pagos?tab=fijos` (gastos fijos recurrentes) y `#/pagos?tab=msi` (compras a meses activas, y alta manual de las que ya se venían pagando). Migración `009_payments.sql` (aplicada y probada). Requiere conexión para guardar. Probado en local con el arnés en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
-- [ ] Bloque 12 — Ahorro y reserva ← **siguiente**
-- [ ] Bloque 13 — Dashboard
+- [x] Bloque 12 — Ahorro y reserva. `#/ahorro` (metas con cuota mensual automática, progreso, guardar/retirar, movimientos, archivar y eliminar) y `#/ahorro?tab=reserva` (saldo, guardar/usar, movimientos, cierre de meses terminados con confirmación y reapertura). Migración `010_reopen_month.sql` (aplicada y probada). Requiere conexión para guardar. Probado en local con el arnés en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
+- [ ] Bloque 13 — Dashboard ← **siguiente**
 - [ ] Bloque 14 — Lista de compras
 - [ ] Bloque 15 — Extras
 - [ ] Bloque 16 — Pulido y QA
@@ -191,6 +191,14 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 - `ui/`: `icon(nombre, tamaño)`, `toast(mensaje, 'info' | 'error')`, `openModal({ title, body, actions })` (devuelve el `<dialog>`; `actions`: `{ label, value, variant }`), `confirmDialog({ title, message, confirmLabel, danger })` → `Promise<boolean>`, `createMonthNav(onShift)` → `{ element, setMonth }`, `createShell`.
 - CSS: `tokens.css` (colores claro/oscuro, espacios, radios), `components.css` (`btn` + `btn--primary/ghost/danger/icon`, `card`, `field`, `list`, `empty`, `month-nav`, `modal`, `toast`), `layout.css` (shell), `views/*.css` (cada archivo nuevo se enlaza en `index.html`).
 - Pruebas: Claude no escribe la contraseña y el usuario no ve el panel de navegador de la app. Para probar vistas con sesión en local existe `.claude/dev-harness.js` (no se sube al repo; si falta, hay que recrearlo): simula PostgREST en memoria (`db`, `calls`, `rpc`) y monta el shell. Uso desde la consola de `http://localhost:8080/index.html`: `const hx = await import('/.claude/dev-harness.js'); window.hx = hx; await hx.mount('#/catalogos')`. Para tablas o RPC nuevos, agrega datos a `hx.db` / `hx.rpc`. La prueba con datos reales la hace el usuario en Pages.
+
+### Ahorro y reserva (bloque 12)
+
+- `data/savings.js`: `listGoals()` (de `v_savings_goals`), `monthlyQuota(meta)` (cuota de este mes = (faltante + guardado este mes) / meses restantes), `saveGoal` (upsert), `deleteGoal`, `listGoalMovements`, `addGoalMovement` (monto positivo = guardar, negativo = retirar), `deleteGoalMovement`, `listReserveMovements`, `addReserveMovement`, `deleteReserveMovement`, `listOpenMonths()` (meses terminados sin cerrar, con su sobrante), `closeMonth(mes)`, `reopenMonth(mes)`.
+- `reopen_month(p_month)` borra el movimiento de cierre y quita `closed_at`. `close_month` solo acepta meses terminados y una vez por mes; si el sobrante es negativo, descuenta de la reserva.
+- Guardar en una meta o en la reserva baja el disponible del mes de la fecha del movimiento; retirar o usar lo regresa. Eliminar una meta borra sus movimientos (el dinero vuelve al disponible de esos meses); archivar la conserva fuera de la cuota del mes.
+- Las tarjetas de metas reutilizan las clases `obligation` y `quincena`; `views/savings.css` solo agrega `goal__stats` y `goal__actions`.
+- El arnés simula `v_savings_goals` (calculada), `savings_goals`, `savings_movements`, `reserve_movements`, `close_month`, `reopen_month`, y `hx.summaries[mes]` para fijar el resumen de un mes. Sus filtros ya entienden `eq`, `lt`, `lte`, `gt`, `gte` e `is.null`.
 
 ### Pagos del mes (bloque 11)
 
