@@ -160,8 +160,8 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 - [x] Bloque 5 — Captura de tickets. `#/ticket` (nuevo), `#/ticket/<id>` (editar, con **Repetir compra** y **Eliminar**), `#/ticket?repetir=<id>`. RPC `save_ticket(p jsonb)` (migración `005_save_ticket.sql`, aplicada y probada): guarda ticket, artículos y plan MSI en una sola transacción y es idempotente. Inicio muestra "Últimos tickets del mes". Probado en local con el arnés en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
 - [x] Bloque 6 — PWA y offline. `manifest.webmanifest`, iconos PNG en `assets/icons/`, `sw.js`, caché de lectura y cola de pendientes en IndexedDB, sincronización automática, indicador en la barra superior, botón "Instalar la app". Probado en local: la app abre con el servidor apagado, y con el arnés se probó guardar/editar un ticket sin conexión, enviarlo al volver y el caso de rechazo del servidor. **Falta la prueba real en el celular del usuario** (instalar, modo avión)
 - [x] Bloque 7 — Historial. `#/historial` (tickets con filtros en la URL: `desde`, `hasta`, `categoria`, `tienda`, `metodo`, `q`) y `#/historial?tab=productos` (buscador, orden, detalle con precio en el tiempo, comparación por tienda y compras). RPC `search_tickets(p jsonb)` (migración `006_search_tickets.sql`, aplicada y probada; usa `unaccent`). Tocar un ticket en Inicio o Historial abre su detalle (ventana) con **Repetir compra** y **Editar**. Probado en local con el arnés en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
-- [ ] Bloque 8 — Calendario ← **siguiente**
-- [ ] Bloque 9 — Ingresos
+- [x] Bloque 8 — Calendario. `#/calendario` (`?dia=aaaa-mm-dd` guarda el día elegido): mes con total por día, cuatro niveles de color por rango entre los días con gasto, y detalle del día (por categoría y subcategoría, tickets, artículos). RPC `day_detail(p_day)` (migración `007_day_detail.sql`, aplicada y probada). Probado en local con el arnés en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
+- [ ] Bloque 9 — Ingresos ← **siguiente**
 - [ ] Bloque 10 — Presupuestos
 - [ ] Bloque 11 — Pagos del mes
 - [ ] Bloque 12 — Ahorro y reserva
@@ -191,6 +191,15 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 - `ui/`: `icon(nombre, tamaño)`, `toast(mensaje, 'info' | 'error')`, `openModal({ title, body, actions })` (devuelve el `<dialog>`; `actions`: `{ label, value, variant }`), `confirmDialog({ title, message, confirmLabel, danger })` → `Promise<boolean>`, `createMonthNav(onShift)` → `{ element, setMonth }`, `createShell`.
 - CSS: `tokens.css` (colores claro/oscuro, espacios, radios), `components.css` (`btn` + `btn--primary/ghost/danger/icon`, `card`, `field`, `list`, `empty`, `month-nav`, `modal`, `toast`), `layout.css` (shell), `views/*.css` (cada archivo nuevo se enlaza en `index.html`).
 - Pruebas: Claude no escribe la contraseña y el usuario no ve el panel de navegador de la app. Para probar vistas con sesión en local existe `.claude/dev-harness.js` (no se sube al repo; si falta, hay que recrearlo): simula PostgREST en memoria (`db`, `calls`, `rpc`) y monta el shell. Uso desde la consola de `http://localhost:8080/index.html`: `const hx = await import('/.claude/dev-harness.js'); window.hx = hx; await hx.mount('#/catalogos')`. Para tablas o RPC nuevos, agrega datos a `hx.db` / `hx.rpc`. La prueba con datos reales la hace el usuario en Pages.
+
+### Calendario (bloque 8)
+
+- `day_detail(p_day)` devuelve los tickets del día con la misma forma que `search_tickets` (sirven para `ticketRow`) y además `discount` y, en cada artículo, `category_id`, `quantity`, `unit`, `unit_price`, `amount` y `net_amount` (con el descuento prorrateado). Sirve también para la vista "Día" del dashboard.
+- `data/calendar.js`: `getDailyTotals(mes)` (de `daily_totals`: `[{ day, total, tickets }]`), `getDayDetail(dia)`.
+- `ui/calendar.js`: `createCalendar(onSelect)` → `{ element, render({ month, totals: Map(día → { total, tickets }), selected, today }) }`. Semana en lunes; el nivel de color es por rango (cuartiles), no proporcional, para que una compra grande no aplane el resto.
+- `views/calendar.js`: `breakdown(tickets, categorias)` agrupa por categoría principal con sus subcategorías (interno; si el dashboard lo necesita, moverlo a `data/`).
+- `core/format.js`: `compactMoney` (sin centavos; `$13.0k` desde 10,000), `dayLabel` ("Jueves, 1 de octubre"), `weekdayIndex` (lunes = 0).
+- El arnés simula `daily_totals` y `day_detail`.
 
 ### Historial (bloque 7)
 

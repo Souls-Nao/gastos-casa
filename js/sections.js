@@ -6,7 +6,7 @@ export const sections = [
   { path: '/ticket', label: 'Nuevo ticket', short: 'Ticket', icon: 'plus', tab: 3, primary: true, view: ticket },
   { path: '/ticket/:id', label: 'Editar ticket', icon: 'receipt-text', parent: '/ticket', hidden: true, view: ticket },
   { path: '/historial', label: 'Historial', icon: 'receipt-text', view: () => import('./views/history.js') },
-  { path: '/calendario', label: 'Calendario', icon: 'calendar-days', tab: 2, block: 8, view: pending },
+  { path: '/calendario', label: 'Calendario', icon: 'calendar-days', tab: 2, view: () => import('./views/calendar.js') },
   { path: '/ingresos', label: 'Ingresos', icon: 'wallet', block: 9, view: pending },
   { path: '/presupuestos', label: 'Presupuestos', icon: 'chart-pie', block: 10, view: pending },
   { path: '/pagos', label: 'Pagos del mes', icon: 'credit-card', block: 11, view: pending },

@@ -1,5 +1,7 @@
 const moneyFormat = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
+const wholeFormat = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 });
 const monthFormat = new Intl.DateTimeFormat('es-MX', { month: 'long', year: 'numeric' });
+const dayFormat = new Intl.DateTimeFormat('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
 const pad = (value) => String(value).padStart(2, '0');
 
 function toISO(date) {
@@ -13,6 +15,19 @@ function fromISO(iso) {
 
 export function money(value) {
   return moneyFormat.format(Number(value) || 0);
+}
+
+export function compactMoney(value) {
+  return value >= 10000 ? `$${(value / 1000).toFixed(1)}k` : wholeFormat.format(value);
+}
+
+export function dayLabel(iso) {
+  const text = dayFormat.format(fromISO(iso));
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+export function weekdayIndex(iso) {
+  return (fromISO(iso).getDay() + 6) % 7;
 }
 
 export function todayISO() {
