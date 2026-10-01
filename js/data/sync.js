@@ -16,7 +16,7 @@ const executors = {
 
 let syncing = false;
 
-export async function announce() {
+async function announce() {
   const operations = await listOperations();
   emit('sync:status', {
     online: navigator.onLine,

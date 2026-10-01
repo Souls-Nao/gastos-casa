@@ -137,7 +137,7 @@ export default async function shopping(root, { query }) {
   }
 
   function pickFromHistory() {
-    const search = textInput({ type: 'search', placeholder: 'Buscar producto', autocomplete: 'off' });
+    const search = textInput({ type: 'search', placeholder: 'Buscar producto', autocomplete: 'off', 'aria-label': 'Buscar producto en el historial' });
     const results = h('div', { class: 'list' });
     const show = () => {
       const key = normalize(search.value);
@@ -235,7 +235,7 @@ export default async function shopping(root, { query }) {
       return;
     }
 
-    const input = textInput({ maxLength: 80, autocomplete: 'off', enterKeyHint: 'done', placeholder: 'Agregar artículo…' });
+    const input = textInput({ maxLength: 80, autocomplete: 'off', enterKeyHint: 'done', placeholder: 'Agregar artículo…', 'aria-label': 'Agregar artículo a la lista' });
     const cart = h('span', { class: 'field__label' });
     const estimate = h('strong', { class: 'ticket__total money' });
     const convert = h('button', { class: 'btn btn--primary', type: 'button', onclick: async () => {

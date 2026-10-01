@@ -1,6 +1,8 @@
 const CACHE = 'gastos-v1';
 const CDN = 'https://cdn.jsdelivr.net/';
-const TIMEOUT = 3000;
+const PAGE_TIMEOUT = 3000;
+const FILE_TIMEOUT = 8000;
+const offlinePages = new Set();
 
 self.addEventListener('install', () => self.skipWaiting());
 
@@ -21,27 +23,45 @@ async function keep(request, response) {
   return response;
 }
 
-async function cacheFirst(request) {
-  return await caches.match(request) ?? keep(request, await fetch(request));
+function fresh(request) {
+  return fetch(request, { cache: 'no-cache' }).then((response) => keep(request, response));
 }
 
-async function networkFirst(request) {
-  const page = request.mode === 'navigate';
-  const cached = await caches.match(request, { ignoreSearch: page })
-    ?? (page ? await caches.match('./') ?? await caches.match('./index.html') : undefined);
-  const network = fetch(request, { cache: 'no-cache' }).then((response) => keep(request, response));
+async function cacheFirst(request, load) {
+  return await caches.match(request) ?? load(request);
+}
+
+function networkFirst(request, cached, timeout, onFallback) {
+  const network = fresh(request);
   if (!cached) return network;
+  const fallback = () => {
+    onFallback?.();
+    return cached;
+  };
   return Promise.race([
-    network.catch(() => cached),
-    new Promise((resolve) => setTimeout(resolve, TIMEOUT, cached)),
+    network.catch(fallback),
+    new Promise((resolve) => setTimeout(() => resolve(fallback()), timeout)),
   ]);
+}
+
+async function page(event) {
+  const cached = await caches.match(event.request, { ignoreSearch: true })
+    ?? await caches.match('./') ?? await caches.match('./index.html');
+  return networkFirst(event.request, cached, PAGE_TIMEOUT, () => offlinePages.add(event.resultingClientId));
+}
+
+async function file(event) {
+  if (offlinePages.has(event.clientId)) return cacheFirst(event.request, fresh);
+  return networkFirst(event.request, await caches.match(event.request), FILE_TIMEOUT);
 }
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
-  if (request.url.startsWith(CDN)) event.respondWith(cacheFirst(request));
-  else if (request.url.startsWith(self.location.origin)) event.respondWith(networkFirst(request));
+  if (request.url.startsWith(CDN)) event.respondWith(cacheFirst(request, async (target) => keep(target, await fetch(target))));
+  else if (!request.url.startsWith(self.location.origin)) return;
+  else if (request.mode === 'navigate') event.respondWith(page(event));
+  else event.respondWith(file(event));
 });
 
 self.addEventListener('message', (event) => {

@@ -2,6 +2,28 @@
   min-height: 100dvh;
 }
 
+.skip-link {
+  position: fixed;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: 40;
+  padding: var(--space-2) var(--space-4);
+  background: var(--accent);
+  border: 0;
+  border-radius: var(--radius-m);
+  color: var(--on-accent);
+  font-weight: 600;
+  transform: translateY(-200%);
+}
+
+.skip-link:focus-visible {
+  transform: none;
+}
+
+.outlet:focus {
+  outline: none;
+}
+
 .sidebar {
   display: none;
 }

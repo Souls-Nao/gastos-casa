@@ -168,13 +168,24 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 - [x] Bloque 13 — Dashboard. Inicio con tres vistas: `#/` o `#/?vista=general` (mes en curso: seis indicadores, alertas, tendencia de 6 a 12 meses, productos más comprados), `#/?vista=dia&dia=aaaa-mm-dd` (gasto del día, cuánto se puede gastar por día, detalle) y `#/?vista=mes` (dona por categoría con subcategorías, comparación con el mes anterior, gastos hormiga, últimos tickets). RPC `monthly_trend(p_months, p_until)` (migración `011_monthly_trend.sql`, aplicada y probada). Probado en local con el arnés en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
 - [x] Bloque 14 — Lista de compras. `#/lista` (`?id=` guarda la lista abierta): varias listas, cada una con tienda opcional; agregar escribiendo (con autocompletado) o desde el historial; marcar, ajustar cantidad, unidad, precio y categoría; total estimado y del carrito; **Convertir en ticket** abre `#/ticket?lista=<id>`. Funciona sin conexión (se encola). RPC `save_shopping_list(p jsonb)` (migración `012_save_shopping_list.sql`, aplicada y probada). Se eliminó `views/pending.js` (ya no hay secciones pendientes). Probado en local con el arnés en escritorio y móvil; la prueba real la hace el usuario en Pages
 - [x] Bloque 15 — Extras. Foto opcional del ticket (comprimida a WebP o JPEG, máx. 1600 px, bucket privado `tickets/<uid>/<ticket_id>.<ext>`), sección nueva `#/datos` (exportar a Excel `.xlsx` de cuatro hojas o CSV, descargar respaldo JSON y restaurarlo), y regla 50/30/20 opcional en Presupuestos. Migración `013_extras.sql` (aplicada; el ciclo respaldo → borrar → restaurar se probó en la base real dentro de una transacción revertida). Probado en local con el arnés; el `.xlsx` se validó como zip y XML con Python, **no se abrió en Excel real**; la subida real de fotos no se pudo probar sin sesión. La prueba real la hace el usuario en Pages
-- [ ] Bloque 16 — Pulido y QA ← **siguiente**
+- [x] Bloque 16 — Pulido y QA (01/10/2026). **Todos los bloques del plan están terminados.**
+  - Seguridad: las 19 tablas con RLS y política, `anon` sin permisos sobre tablas ni funciones, vistas `security_invoker`, bucket privado, todas las funciones con `search_path` fijo (migración `014_search_path.sql`), sin llaves secretas en el repo ni en su historial. Prueba de humo completa como usuario tras el cambio (revertida).
+  - Accesibilidad: contraste AA en ambos temas (el acento claro pasó a `#197a53` y el rojo a `#b23328`), enlace "Saltar al contenido", etiquetas en campos sin `label`, pestañas de 44 px.
+  - Carga: `js/boot.js` muestra "No se pudo cargar la app" con botón Reintentar si a los 12 s sigue "Cargando…"; `preconnect` al CDN y a Supabase.
+  - Service worker: si la página sale de la caché (sin red o más de 3 s), el resto de esa carga se sirve de la caché para no mezclar versiones; si la página sale de la red, los archivos van a la red con caída a caché a los 8 s.
+  - Pruebas: recorrido automático de las 22 pantallas con el arnés en 375 px y 1280 px (sin errores, textos rotos ni desbordes); la app abre y carga todas las vistas con el servidor local apagado.
+  - **Sigue pendiente del usuario** (lo pospuso el 01/10/2026): apagar en Supabase → Authentication → Sign In / Providers **Allow new users to sign up** y **Allow anonymous sign-ins**. Al cierre seguían encendidos.
 
-### Notas para el siguiente bloque
+### Después del plan (mantenimiento)
+
+- Trabajo futuro posible, no comprometido: ocultar, renombrar o fusionar productos; índices para llaves foráneas (el advisor de rendimiento los marca como informativos; a escala de una casa no hacen falta); que más operaciones funcionen sin conexión (hoy solo tickets, fotos y listas de compras).
+- No probado con datos reales por Claude: subida de fotos, abrir el `.xlsx` en Excel, restaurar un respaldo desde la app, instalación en iPhone. Si el usuario reporta algo de esto, empieza por ahí.
+- Un cambio nuevo sigue el mismo ciclo: migración en `supabase/migrations/` si toca la base, probar con el arnés en 375 px y 1280 px, actualizar esta sección, commit y push.
+
+### Notas técnicas generales
 
 - Migraciones: guarda el SQL en `supabase/migrations/NNN_nombre.sql` y aplícalo con el conector Supabase (`apply_migration`, proyecto `oyawbeizugnkvvyqemcn`). Toda función nueva en `public` necesita `revoke execute ... from anon, public` y `grant execute ... to authenticated`.
 - Para probar SQL como el usuario sin dejar datos: bloque `do $$ … $$` que fija `request.jwt.claims`, hace `set local role authenticated` y termina con `raise exception` para revertir.
-- Pendiente para el bloque 16: fijar `search_path` en las 14 funciones (aviso del advisor de seguridad de Supabase).
 - No envíes `total` al insertar o actualizar tickets.
 - Para el autocompletado de productos usa `v_product_stats` (`last_price`, `unit`, `category_id`, `last_store_id`).
 
@@ -226,7 +237,6 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 - `core/dom.js`: `fill(padre, ...hijos)` reemplaza el contenido ignorando `null` y `false`. **Úsalo en vez de `replaceChildren` cuando algún hijo sea condicional** (`replaceChildren` y `append` nativos escriben el texto "null").
 - `core/format.js`: `wholeMoney`, `addDays`. CSS en `views/home.css`: `stat`, `delta`, `alert`, `trend`, `donut`, `chart--donut`, `legend__line`.
 - Al probar en local tras editar CSS o módulos ya cargados, Chrome puede servirlos de su caché en memoria: fuerza con `fetch(archivo, { cache: 'reload' })` y recarga, o navega con otra query.
-- Pendiente para el bloque 16: el service worker sirve red primero con caída a caché a los 3 s por archivo; con mala conexión justo después de publicar podría mezclar archivos nuevos y viejos. Evaluar decidir por carga completa (si la navegación salió de caché, servir todo de caché).
 - El arnés tiene `hx.seedDemo()` (datos de demostración para todas las secciones), `hx.trend` y simula `monthly_trend` y un `month_summary` calculado.
 
 ### Ahorro y reserva (bloque 12)
@@ -288,7 +298,7 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 
 ### PWA y offline (bloque 6)
 
-- `sw.js` no lleva lista de archivos. Archivos propios: red primero (revalidando siempre) y caché si no hay red o tarda más de 3 s; CDN `cdn.jsdelivr.net`: caché primero. Al entrar con conexión, `app.js` (`prepareOffline`) importa todas las vistas de `sections.js`, precarga los catálogos y pide al service worker guardar todo lo cargado. **Por eso toda vista debe ser alcanzable con imports estáticos desde el `view()` de su sección** (nada de `import()` dinámico dentro de las vistas) y todo CSS debe estar enlazado en `index.html`. Solo cambia `CACHE` en `sw.js` si cambia la estructura de la caché.
+- `sw.js` no lleva lista de archivos. La página: red primero, y caché si no hay red o tarda más de 3 s; en ese caso todo lo demás de esa carga sale de la caché. Si la página salió de la red, los archivos propios van a la red (revalidando) con caída a caché a los 8 s. CDN `cdn.jsdelivr.net`: caché primero. Al entrar con conexión, `app.js` (`prepareOffline`) importa todas las vistas de `sections.js`, precarga los catálogos y pide al service worker guardar todo lo cargado. **Por eso toda vista debe ser alcanzable con imports estáticos desde el `view()` de su sección** (nada de `import()` dinámico dentro de las vistas) y todo CSS debe estar enlazado en `index.html`. Solo cambia `CACHE` en `sw.js` si cambia la estructura de la caché.
 - `core/offline.js`: `cachedRead(clave, fetcher)` (red con límite de 8 s; si no hay red devuelve lo último guardado en IndexedDB), `isNetworkError`, `OfflineError`, `withTimeout`, cola (`putOperation`, `removeOperation`, `listOperations`), `clearOffline` (se llama al cerrar sesión). **Toda lectura nueva de `data/` debe pasar por `cachedRead`** con una clave propia.
 - `core/supabase.js`: `unwrap` convierte los fallos de red en `OfflineError` ("Sin conexión a internet.") y el duplicado en mensaje claro. `ensureMonth` y `seedDefaults` ignoran los fallos de red.
 - `data/sync.js`: `enqueue(clave, tipo, payload)`, `dropPending(clave)`, `pendingOperations()`, `flush()` (se dispara al entrar, al volver la conexión y al volver a la pestaña), `announce()`. Para que otra operación funcione sin conexión: agrega su ejecutor idempotente en `executors` y encólala cuando la llamada directa falle por red (patrón de `saveTicket`/`deleteTicket`, que devuelven `true` si se envió y `false` si quedó en cola). Una misma clave reemplaza a la anterior. Solo los tickets se encolan; catálogos y demás requieren conexión.

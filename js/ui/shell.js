@@ -13,7 +13,7 @@ export function createShell({ sections, email, date }) {
   const tabs = sections.filter((section) => section.tab).sort((a, b) => a.tab - b.tab);
   const title = h('h1', { class: 'topbar__title' });
   const chip = h('span', { class: 'chip', role: 'status', hidden: true });
-  const outlet = h('main', { class: 'outlet' });
+  const outlet = h('main', { class: 'outlet', tabIndex: -1 });
 
   const sidebar = h('aside', { class: 'sidebar' },
     h('div', { class: 'brand' },
@@ -36,6 +36,7 @@ export function createShell({ sections, email, date }) {
     ])));
 
   const element = h('div', { class: 'shell' },
+    h('button', { class: 'skip-link', type: 'button', onclick: () => outlet.focus() }, 'Saltar al contenido'),
     sidebar,
     h('div', { class: 'main' },
       h('header', { class: 'topbar' }, title, chip, h('span', { class: 'topbar__date' }, date)),
