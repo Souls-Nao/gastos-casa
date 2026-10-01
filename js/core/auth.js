@@ -1,8 +1,13 @@
+import { readLocal } from './local.js';
 import { supabase } from './supabase.js';
+
+function storedUser() {
+  return readLocal(supabase.auth.storageKey)?.user ?? null;
+}
 
 export function onAuthChange(handler) {
   supabase.auth.onAuthStateChange((event, session) => {
-    setTimeout(() => handler(session?.user ?? null), 0);
+    setTimeout(() => handler(session?.user ?? (navigator.onLine ? null : storedUser())), 0);
   });
 }
 

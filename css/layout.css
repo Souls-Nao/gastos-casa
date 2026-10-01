@@ -38,6 +38,10 @@
   font-variant-numeric: tabular-nums;
 }
 
+.chip:not([hidden]) + .topbar__date {
+  display: none;
+}
+
 .outlet {
   flex: 1;
   width: 100%;
@@ -191,6 +195,10 @@
 
   .topbar__title {
     font-size: var(--text-xl);
+  }
+
+  .chip:not([hidden]) + .topbar__date {
+    display: inline;
   }
 
   .outlet {

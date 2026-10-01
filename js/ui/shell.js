@@ -1,6 +1,7 @@
 import { h } from '../core/dom.js';
 import { emit } from '../core/events.js';
 import { icon } from './icon.js';
+import { installButton } from './install-button.js';
 
 function link(section, className, content) {
   return h('a', { class: className, href: `#${section.path}`, 'data-path': section.path }, content);
@@ -11,6 +12,7 @@ export function createShell({ sections, email, date }) {
     .sort((a, b) => Boolean(b.primary) - Boolean(a.primary));
   const tabs = sections.filter((section) => section.tab).sort((a, b) => a.tab - b.tab);
   const title = h('h1', { class: 'topbar__title' });
+  const chip = h('span', { class: 'chip', role: 'status', hidden: true });
   const outlet = h('main', { class: 'outlet' });
 
   const sidebar = h('aside', { class: 'sidebar' },
@@ -22,6 +24,7 @@ export function createShell({ sections, email, date }) {
         [icon(section.icon), h('span', null, section.label)]))),
     h('div', { class: 'sidebar__footer' },
       h('span', { class: 'sidebar__user', title: email }, email),
+      installButton(),
       h('button', { class: 'btn btn--ghost', type: 'button', onclick: () => emit('auth:logout') },
         icon('log-out', 18), 'Cerrar sesión')),
   );
@@ -35,10 +38,22 @@ export function createShell({ sections, email, date }) {
   const element = h('div', { class: 'shell' },
     sidebar,
     h('div', { class: 'main' },
-      h('header', { class: 'topbar' }, title, h('span', { class: 'topbar__date' }, date)),
+      h('header', { class: 'topbar' }, title, chip, h('span', { class: 'topbar__date' }, date)),
       outlet),
     tabbar,
   );
+
+  function setStatus({ online, syncing, pending, failed }) {
+    const count = pending === 1 ? '1 pendiente' : `${pending} pendientes`;
+    let text = '';
+    if (!online) text = pending ? `Sin conexión · ${count}` : 'Sin conexión';
+    else if (syncing) text = `Enviando ${count}…`;
+    else if (failed) text = failed === 1 ? '1 cambio sin enviar' : `${failed} cambios sin enviar`;
+    else if (pending) text = count;
+    chip.hidden = !text;
+    chip.dataset.tone = online && !failed ? 'info' : 'warning';
+    chip.replaceChildren(icon(online ? 'refresh-cw' : 'wifi-off', 14), text);
+  }
 
   const more = tabs.find((section) => section.mobileOnly);
 
@@ -57,5 +72,5 @@ export function createShell({ sections, email, date }) {
     mark(tabbar, tabs.some((tab) => tab.path === active) ? active : more.path);
   }
 
-  return { element, outlet, setActive };
+  return { element, outlet, setActive, setStatus };
 }

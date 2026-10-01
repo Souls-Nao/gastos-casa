@@ -1,8 +1,9 @@
 import { h } from '../core/dom.js';
+import { on } from '../core/events.js';
 import { addMonths, money, monthEnd } from '../core/format.js';
 import { getState, watch } from '../core/store.js';
 import { getMonthSummary, selectMonth } from '../data/months.js';
-import { listTickets } from '../data/tickets.js';
+import { listPendingTickets, listTickets } from '../data/tickets.js';
 import { createMonthNav } from '../ui/month-nav.js';
 import { ticketRow } from '../ui/ticket-row.js';
 import { toast } from '../ui/toast.js';
@@ -29,9 +30,10 @@ export default function home(root) {
     nav.setMonth(month);
     stats.setAttribute('aria-busy', 'true');
     try {
-      const [summary, recent] = await Promise.all([
+      const [summary, recent, pending] = await Promise.all([
         getMonthSummary(month),
         listTickets({ from: month, to: monthEnd(month), limit: 10 }),
+        listPendingTickets(),
       ]);
       if (month !== getState().month) return;
       stats.replaceChildren(
@@ -42,8 +44,9 @@ export default function home(root) {
         stat('Por pagar', summary.obligations_pending, `Pagado ${money(summary.obligations_paid)}`),
         stat('Presupuesto del mes', summary.total_budget, `Asignado ${money(summary.budgeted)}`),
       );
-      tickets.replaceChildren(...(recent.length
-        ? recent.map(ticketRow)
+      const rows = [...pending, ...recent];
+      tickets.replaceChildren(...(rows.length
+        ? rows.map(ticketRow)
         : [h('p', { class: 'list__empty' }, 'Todavía no hay tickets en este mes.')]));
     } catch (error) {
       toast(`No se pudo cargar el resumen: ${error.message}`, 'error');
@@ -56,5 +59,10 @@ export default function home(root) {
     stats,
     h('section', { class: 'view' }, h('h2', { class: 'section-title' }, 'Últimos tickets del mes'), tickets));
   load(getState().month);
-  return watch('month', load);
+  const stopMonth = watch('month', load);
+  const stopData = on('data:changed', () => load(getState().month));
+  return () => {
+    stopMonth();
+    stopData();
+  };
 }

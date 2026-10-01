@@ -369,10 +369,12 @@ export default async function ticket(root, { params, query }) {
     }
     save.disabled = true;
     try {
-      await saveTicket({ ...state, items: state.items.map((item) => ({ ...item, name: item.name.trim() })) });
+      const sent = await saveTicket({ ...state, items: state.items.map((item) => ({ ...item, name: item.name.trim() })) });
       if (state.payment_method_id) writeLocal(METHOD_KEY, state.payment_method_id);
       if (!editing) removeLocal(DRAFT_KEY);
-      toast(`Ticket guardado: ${money(total)}`);
+      toast(sent
+        ? `Ticket guardado: ${money(total)}`
+        : `Sin conexión: el ticket de ${money(total)} quedó guardado en este dispositivo y se enviará solo al volver internet.`);
       navigate('/');
     } catch (error) {
       toast(`No se pudo guardar: ${error.message}`, 'error');
@@ -411,8 +413,8 @@ export default async function ticket(root, { params, query }) {
         const place = stores.find((row) => row.id === state.store_id)?.name;
         if (!await confirmRemoval(place ? `Ticket de ${place}` : 'Ticket', 'Se borrará con todos sus artículos.')) return;
         try {
-          await deleteTicket(state.id);
-          toast('Ticket eliminado.');
+          const sent = await deleteTicket(state.id);
+          toast(sent ? 'Ticket eliminado.' : 'Sin conexión: el ticket se eliminará al volver internet.');
           navigate('/');
         } catch (error) {
           toast(`No se pudo eliminar: ${error.message}`, 'error');

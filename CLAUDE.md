@@ -158,8 +158,8 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 - [x] Bloque 3 — Núcleo. Probado en local en escritorio (1280px) y móvil (375px), tema claro y oscuro: login, menú lateral, barra inferior, router, vistas Inicio / Más / pendientes, modal y toast. Las vistas con sesión se probaron montando el shell a mano y simulando las respuestas RPC; **el flujo real con sesión (entrar, recargar y seguir dentro, cerrar sesión) lo prueba el usuario en Pages**
 - [x] Bloque 4 — Catálogos. `#/catalogos?tab=categorias|tiendas|pagos|unidades` (categorías además con `&kind=expense|income`). Todo se puede ocultar/mostrar y eliminar (botón **Eliminar** dentro del formulario de edición; RPC `catalog_usage(p_table, p_id)` de la migración `004_catalog_usage.sql` cuenta los registros afectados). Tabla nueva `units` (migración `003_units.sql`, aplicada; `seed_defaults` ahora también siembra 12 unidades). Probado en local con el arnés de pruebas en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
 - [x] Bloque 5 — Captura de tickets. `#/ticket` (nuevo), `#/ticket/<id>` (editar, con **Repetir compra** y **Eliminar**), `#/ticket?repetir=<id>`. RPC `save_ticket(p jsonb)` (migración `005_save_ticket.sql`, aplicada y probada): guarda ticket, artículos y plan MSI en una sola transacción y es idempotente. Inicio muestra "Últimos tickets del mes". Probado en local con el arnés en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
-- [ ] Bloque 6 — PWA y offline ← **siguiente**
-- [ ] Bloque 7 — Historial
+- [x] Bloque 6 — PWA y offline. `manifest.webmanifest`, iconos PNG en `assets/icons/`, `sw.js`, caché de lectura y cola de pendientes en IndexedDB, sincronización automática, indicador en la barra superior, botón "Instalar la app". Probado en local: la app abre con el servidor apagado, y con el arnés se probó guardar/editar un ticket sin conexión, enviarlo al volver y el caso de rechazo del servidor. **Falta la prueba real en el celular del usuario** (instalar, modo avión)
+- [ ] Bloque 7 — Historial ← **siguiente**
 - [ ] Bloque 8 — Calendario
 - [ ] Bloque 9 — Ingresos
 - [ ] Bloque 10 — Presupuestos
@@ -191,6 +191,20 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 - `ui/`: `icon(nombre, tamaño)`, `toast(mensaje, 'info' | 'error')`, `openModal({ title, body, actions })` (devuelve el `<dialog>`; `actions`: `{ label, value, variant }`), `confirmDialog({ title, message, confirmLabel, danger })` → `Promise<boolean>`, `createMonthNav(onShift)` → `{ element, setMonth }`, `createShell`.
 - CSS: `tokens.css` (colores claro/oscuro, espacios, radios), `components.css` (`btn` + `btn--primary/ghost/danger/icon`, `card`, `field`, `list`, `empty`, `month-nav`, `modal`, `toast`), `layout.css` (shell), `views/*.css` (cada archivo nuevo se enlaza en `index.html`).
 - Pruebas: Claude no escribe la contraseña y el usuario no ve el panel de navegador de la app. Para probar vistas con sesión en local existe `.claude/dev-harness.js` (no se sube al repo; si falta, hay que recrearlo): simula PostgREST en memoria (`db`, `calls`, `rpc`) y monta el shell. Uso desde la consola de `http://localhost:8080/index.html`: `const hx = await import('/.claude/dev-harness.js'); window.hx = hx; await hx.mount('#/catalogos')`. Para tablas o RPC nuevos, agrega datos a `hx.db` / `hx.rpc`. La prueba con datos reales la hace el usuario en Pages.
+
+### PWA y offline (bloque 6)
+
+- `sw.js` no lleva lista de archivos. Archivos propios: red primero (revalidando siempre) y caché si no hay red o tarda más de 3 s; CDN `cdn.jsdelivr.net`: caché primero. Al entrar con conexión, `app.js` (`prepareOffline`) importa todas las vistas de `sections.js`, precarga los catálogos y pide al service worker guardar todo lo cargado. **Por eso toda vista debe ser alcanzable con imports estáticos desde el `view()` de su sección** (nada de `import()` dinámico dentro de las vistas) y todo CSS debe estar enlazado en `index.html`. Solo cambia `CACHE` en `sw.js` si cambia la estructura de la caché.
+- `core/offline.js`: `cachedRead(clave, fetcher)` (red con límite de 8 s; si no hay red devuelve lo último guardado en IndexedDB), `isNetworkError`, `OfflineError`, `withTimeout`, cola (`putOperation`, `removeOperation`, `listOperations`), `clearOffline` (se llama al cerrar sesión). **Toda lectura nueva de `data/` debe pasar por `cachedRead`** con una clave propia.
+- `core/supabase.js`: `unwrap` convierte los fallos de red en `OfflineError` ("Sin conexión a internet.") y el duplicado en mensaje claro. `ensureMonth` y `seedDefaults` ignoran los fallos de red.
+- `data/sync.js`: `enqueue(clave, tipo, payload)`, `dropPending(clave)`, `pendingOperations()`, `flush()` (se dispara al entrar, al volver la conexión y al volver a la pestaña), `announce()`. Para que otra operación funcione sin conexión: agrega su ejecutor idempotente en `executors` y encólala cuando la llamada directa falle por red (patrón de `saveTicket`/`deleteTicket`, que devuelven `true` si se envió y `false` si quedó en cola). Una misma clave reemplaza a la anterior. Solo los tickets se encolan; catálogos y demás requieren conexión.
+- Eventos nuevos: `sync:status` (`{ online, syncing, pending, failed }`), `sync:sent` (cantidad), `data:changed` (las vistas que muestran datos deben recargar al recibirlo, como `home.js`).
+- `data/tickets.js`: `getTicket` devuelve primero el pendiente de la cola; `listTickets` oculta los que tienen operación pendiente; `listPendingTickets()` los devuelve con `pending` (texto de la etiqueta).
+- `core/auth.js`: sin conexión y con el token vencido, usa el usuario guardado para no mandar al login.
+- `core/pwa.js`: `registerServiceWorker`, `cacheLoadedFiles`, `canInstall`, `install`, `needsManualInstall` (iPhone). `ui/install-button.js`: `installButton()` (devuelve `null` si no se puede instalar).
+- `ui/shell.js`: `setStatus(estado)` pinta el indicador (`.chip`). CSS nuevo: `chip`, `tag--warning`, tokens `--warning`/`--warning-soft`.
+- El arnés tiene `hx.setOnline(false|true)` para simular la conexión; un RPC simulado que lanza error responde 400.
+- Los iconos PNG se generaron con System.Drawing desde PowerShell (misma figura que `icon.svg`).
 
 ### Captura de tickets (bloque 5)
 

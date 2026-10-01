@@ -13,6 +13,8 @@
   --danger: #c0392b;
   --danger-hover: #a02e22;
   --on-danger: #ffffff;
+  --warning: #8a5a00;
+  --warning-soft: #fdefc8;
   --backdrop: rgb(10 16 22 / 50%);
   --shadow-1: 0 1px 2px rgb(16 24 32 / 6%), 0 1px 3px rgb(16 24 32 / 8%);
   --shadow-2: 0 10px 30px rgb(16 24 32 / 18%);
@@ -56,6 +58,8 @@
     --danger: #ff8a7a;
     --danger-hover: #ffa598;
     --on-danger: #3a0d07;
+    --warning: #f2c14e;
+    --warning-soft: #3a2e0c;
     --backdrop: rgb(0 0 0 / 60%);
     --shadow-1: 0 1px 2px rgb(0 0 0 / 30%);
     --shadow-2: 0 10px 30px rgb(0 0 0 / 50%);

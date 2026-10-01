@@ -1,11 +1,15 @@
 import { h } from '../core/dom.js';
 import { tabs } from '../ui/tabs.js';
+import categories from './catalogs/categories.js';
+import paymentMethods from './catalogs/payment-methods.js';
+import stores from './catalogs/stores.js';
+import units from './catalogs/units.js';
 
 const TABS = [
-  { value: 'categorias', label: 'Categorías', load: () => import('./catalogs/categories.js') },
-  { value: 'tiendas', label: 'Tiendas', load: () => import('./catalogs/stores.js') },
-  { value: 'pagos', label: 'Métodos de pago', load: () => import('./catalogs/payment-methods.js') },
-  { value: 'unidades', label: 'Unidades', load: () => import('./catalogs/units.js') },
+  { value: 'categorias', label: 'Categorías', render: categories },
+  { value: 'tiendas', label: 'Tiendas', render: stores },
+  { value: 'pagos', label: 'Métodos de pago', render: paymentMethods },
+  { value: 'unidades', label: 'Unidades', render: units },
 ];
 
 export default async function catalogs(root, { query }) {
@@ -14,6 +18,5 @@ export default async function catalogs(root, { query }) {
   root.append(
     tabs(TABS.map((tab) => ({ ...tab, href: `#/catalogos?tab=${tab.value}` })), current.value),
     panel);
-  const module = await current.load();
-  await module.default(panel, query);
+  await current.render(panel, query);
 }
