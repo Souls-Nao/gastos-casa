@@ -149,7 +149,13 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 ## Estado
 
 - [x] Bloque 1 — Base de datos (`supabase/schema.sql`, probado localmente; **aún no aplicado en Supabase**)
-- [ ] Bloque 2 — Puesta en marcha ← **siguiente**
+- [ ] Bloque 2 — Puesta en marcha ← **en curso**
+  - [x] Repo público `Souls-Nao/gastos-casa` (rama `main`, commits con correo noreply de GitHub) y GitHub Pages activo en `https://souls-nao.github.io/gastos-casa/`
+  - [x] Página de prueba (`index.html`, `css/base.css`, `js/app.js`, `js/core/supabase.js`): login, `seed_defaults`, `ensure_month`, conteos y `month_summary`
+  - [x] Servidor local: `.claude/launch.json` (configuración `gastos`, puerto 8080; `.claude/` no se sube al repo)
+  - [ ] Proyecto Supabase creado y `schema.sql` aplicado (conector Supabase de la app de escritorio, o Plan B por SQL Editor; el CLI `claude` no está instalado, así que `claude mcp add` no aplica)
+  - [ ] Cuenta de la casa creada y registros nuevos desactivados
+  - [ ] `js/config.js` con Project URL y publishable key, y login probado en local y en Pages
 - [ ] Bloque 3 — Núcleo
 - [ ] Bloque 4 — Catálogos
 - [ ] Bloque 5 — Captura de tickets
