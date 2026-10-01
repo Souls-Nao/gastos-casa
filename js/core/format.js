@@ -44,6 +44,14 @@ export function normalize(text) {
   return text.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim();
 }
 
+export function dateToTime(iso) {
+  return fromISO(iso).getTime();
+}
+
+export function timeToISO(time) {
+  return toISO(new Date(time));
+}
+
 export function formatDate(iso) {
   const [year, month, day] = iso.split('-');
   return `${day}/${month}/${year}`;

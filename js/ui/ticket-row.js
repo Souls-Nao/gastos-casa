@@ -6,9 +6,9 @@ function itemsSummary(items) {
   return items.length > 2 ? `${names} y ${items.length - 2} más` : names;
 }
 
-export function ticketRow(ticket) {
+export function ticketRow(ticket, onOpen) {
   const plan = [ticket.msi_plans].flat()[0];
-  return h('a', { class: 'list__item', href: `#/ticket/${ticket.id}` },
+  return h('button', { class: 'list__item', type: 'button', onclick: () => onOpen(ticket.id) },
     h('div', { class: 'row__text' },
       h('span', { class: 'row__title' },
         ticket.stores?.name ?? 'Sin tienda',

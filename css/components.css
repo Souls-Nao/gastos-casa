@@ -247,6 +247,11 @@
   font-weight: 600;
 }
 
+.tag--good {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
 .tag--warning,
 .chip[data-tone="warning"] {
   background: var(--warning-soft);
@@ -356,6 +361,136 @@
 
 .list__item > strong {
   color: var(--text);
+}
+
+button.list__item {
+  width: 100%;
+  background: none;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.meter {
+  display: block;
+  height: 4px;
+  margin-top: var(--space-1);
+  overflow: hidden;
+  background: var(--surface-2);
+  border-radius: 2px;
+}
+
+.meter__fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+}
+
+.detail {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.detail__facts {
+  color: var(--muted);
+  font-size: var(--text-s);
+}
+
+.detail__heading {
+  margin-top: var(--space-2);
+  font-size: var(--text-m);
+}
+
+.detail__items {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.detail__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--border);
+}
+
+.detail__line {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+}
+
+.detail__line--strong {
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border);
+  color: var(--text);
+  font-size: var(--text-l);
+  font-weight: 700;
+}
+
+.detail__note {
+  padding: var(--space-3);
+  background: var(--bg);
+  border-radius: var(--radius-m);
+  color: var(--muted);
+  font-size: var(--text-s);
+}
+
+.mini-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2);
+}
+
+.mini-stat {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-2);
+  background: var(--bg);
+  border-radius: var(--radius-m);
+  font-size: var(--text-s);
+}
+
+.mini-stat__label {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.chart {
+  position: relative;
+  height: 200px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-s);
+}
+
+.table th {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-align: left;
+}
+
+.table th,
+.table td {
+  padding: var(--space-2) var(--space-1);
+  border-bottom: 1px solid var(--border);
+}
+
+.table td .tag {
+  margin-left: var(--space-2);
+}
+
+.table .table__number {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .list__item + .list__item {

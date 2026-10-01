@@ -6,7 +6,7 @@ import { categoryTree, listCategories } from '../data/categories.js';
 import { listPaymentMethods } from '../data/payment-methods.js';
 import { listProducts } from '../data/products.js';
 import { createStore, listStores } from '../data/stores.js';
-import { deleteTicket, getTicket, saveTicket } from '../data/tickets.js';
+import { deleteTicket, getTicket, itemAmount, saveTicket, ticketTotals } from '../data/tickets.js';
 import { listUnits } from '../data/units.js';
 import { autocomplete } from '../ui/autocomplete.js';
 import { categorySelect } from '../ui/category-select.js';
@@ -27,10 +27,6 @@ function newItem() {
 
 function isBlank(item) {
   return !item.name.trim() && item.unit_price == null;
-}
-
-function itemAmount(item) {
-  return Math.round(((item.quantity || 0) * (item.unit_price || 0) + Number.EPSILON) * 100) / 100;
 }
 
 function firstPaymentMonth(date, method) {
@@ -107,13 +103,8 @@ export default async function ticket(root, { params, query }) {
     return methods.find((method) => method.id === state.payment_method_id);
   }
 
-  function totals() {
-    const subtotal = state.items.reduce((sum, item) => sum + itemAmount(item), 0);
-    return { subtotal, total: Math.max(subtotal - (state.discount || 0), 0) };
-  }
-
   function refresh() {
-    const { subtotal, total } = totals();
+    const { subtotal, total } = ticketTotals(state);
     subtotalText.textContent = money(subtotal);
     totalText.textContent = money(total);
     if (state.msi) {
@@ -147,7 +138,7 @@ export default async function ticket(root, { params, query }) {
     const quantity = textInput({ type: 'number', inputMode: 'decimal', min: '0.001', step: 'any', required: true, value: item.quantity ?? '' });
     const unit = selectInput(unitOptions(item.unit), item.unit);
     const price = textInput({ type: 'number', inputMode: 'decimal', min: '0', step: '0.01', required: true, placeholder: '0.00', value: item.unit_price ?? '' });
-    const category = categorySelect(tree, item.category_id, categoryFallback(item.category_id));
+    const category = categorySelect(tree, item.category_id, { fallback: categoryFallback(item.category_id) });
     const amount = h('strong', { class: 'ticket-item__amount money' }, money(itemAmount(item)));
 
     function update() {
@@ -358,7 +349,7 @@ export default async function ticket(root, { params, query }) {
       renderItems();
     }
     if (!form.reportValidity()) return;
-    const { subtotal, total } = totals();
+    const { subtotal, total } = ticketTotals(state);
     if (state.discount > subtotal) {
       toast('El descuento no puede ser mayor que el subtotal.', 'error');
       return;

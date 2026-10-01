@@ -9,9 +9,13 @@ import { dropPending, enqueue, pendingOperations } from './sync.js';
 
 const pendingKey = (id) => `ticket:${id}`;
 
-function ticketTotal(ticket) {
-  const subtotal = ticket.items.reduce((sum, item) => sum + Math.round((item.quantity * item.unit_price + Number.EPSILON) * 100) / 100, 0);
-  return Math.max(subtotal - (ticket.discount || 0), 0);
+export function itemAmount(item) {
+  return Math.round(((item.quantity || 0) * (item.unit_price || 0) + Number.EPSILON) * 100) / 100;
+}
+
+export function ticketTotals(ticket) {
+  const subtotal = ticket.items.reduce((sum, item) => sum + itemAmount(item), 0);
+  return { subtotal, total: Math.max(subtotal - (ticket.discount || 0), 0) };
 }
 
 export async function getTicket(id) {
@@ -36,19 +40,13 @@ export async function getTicket(id) {
   };
 }
 
-export async function listTickets({ from, to, limit }) {
-  const [rows, operations] = await Promise.all([
-    cachedRead(`tickets:${from}:${to}:${limit}`, async () => unwrap(await supabase.from('tickets')
-      .select('id, purchased_on, total, stores(name), payment_methods(name), ticket_items(name), msi_plans(months)')
-      .gte('purchased_on', from)
-      .lte('purchased_on', to)
-      .order('purchased_on', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(limit))),
+export async function listTickets(filters) {
+  const [found, operations] = await Promise.all([
+    cachedRead(`tickets:${JSON.stringify(filters)}`, () => rpc('search_tickets', { p: filters })),
     pendingOperations(),
   ]);
   const pending = new Set(operations.map((operation) => operation.key));
-  return rows.filter((row) => !pending.has(pendingKey(row.id)));
+  return { ...found, rows: found.rows.filter((row) => !pending.has(pendingKey(row.id))) };
 }
 
 export async function listPendingTickets() {
@@ -58,7 +56,7 @@ export async function listPendingTickets() {
   return operations.map(({ payload, error }) => ({
     id: payload.id,
     purchased_on: payload.purchased_on,
-    total: ticketTotal(payload),
+    total: ticketTotals(payload).total,
     stores: stores.find((store) => store.id === payload.store_id) ?? null,
     payment_methods: methods.find((method) => method.id === payload.payment_method_id) ?? null,
     ticket_items: payload.items,

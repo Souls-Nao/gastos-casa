@@ -159,8 +159,8 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 - [x] Bloque 4 — Catálogos. `#/catalogos?tab=categorias|tiendas|pagos|unidades` (categorías además con `&kind=expense|income`). Todo se puede ocultar/mostrar y eliminar (botón **Eliminar** dentro del formulario de edición; RPC `catalog_usage(p_table, p_id)` de la migración `004_catalog_usage.sql` cuenta los registros afectados). Tabla nueva `units` (migración `003_units.sql`, aplicada; `seed_defaults` ahora también siembra 12 unidades). Probado en local con el arnés de pruebas en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
 - [x] Bloque 5 — Captura de tickets. `#/ticket` (nuevo), `#/ticket/<id>` (editar, con **Repetir compra** y **Eliminar**), `#/ticket?repetir=<id>`. RPC `save_ticket(p jsonb)` (migración `005_save_ticket.sql`, aplicada y probada): guarda ticket, artículos y plan MSI en una sola transacción y es idempotente. Inicio muestra "Últimos tickets del mes". Probado en local con el arnés en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
 - [x] Bloque 6 — PWA y offline. `manifest.webmanifest`, iconos PNG en `assets/icons/`, `sw.js`, caché de lectura y cola de pendientes en IndexedDB, sincronización automática, indicador en la barra superior, botón "Instalar la app". Probado en local: la app abre con el servidor apagado, y con el arnés se probó guardar/editar un ticket sin conexión, enviarlo al volver y el caso de rechazo del servidor. **Falta la prueba real en el celular del usuario** (instalar, modo avión)
-- [ ] Bloque 7 — Historial ← **siguiente**
-- [ ] Bloque 8 — Calendario
+- [x] Bloque 7 — Historial. `#/historial` (tickets con filtros en la URL: `desde`, `hasta`, `categoria`, `tienda`, `metodo`, `q`) y `#/historial?tab=productos` (buscador, orden, detalle con precio en el tiempo, comparación por tienda y compras). RPC `search_tickets(p jsonb)` (migración `006_search_tickets.sql`, aplicada y probada; usa `unaccent`). Tocar un ticket en Inicio o Historial abre su detalle (ventana) con **Repetir compra** y **Editar**. Probado en local con el arnés en escritorio y móvil; la prueba con datos reales la hace el usuario en Pages
+- [ ] Bloque 8 — Calendario ← **siguiente**
 - [ ] Bloque 9 — Ingresos
 - [ ] Bloque 10 — Presupuestos
 - [ ] Bloque 11 — Pagos del mes
@@ -191,6 +191,18 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 - `ui/`: `icon(nombre, tamaño)`, `toast(mensaje, 'info' | 'error')`, `openModal({ title, body, actions })` (devuelve el `<dialog>`; `actions`: `{ label, value, variant }`), `confirmDialog({ title, message, confirmLabel, danger })` → `Promise<boolean>`, `createMonthNav(onShift)` → `{ element, setMonth }`, `createShell`.
 - CSS: `tokens.css` (colores claro/oscuro, espacios, radios), `components.css` (`btn` + `btn--primary/ghost/danger/icon`, `card`, `field`, `list`, `empty`, `month-nav`, `modal`, `toast`), `layout.css` (shell), `views/*.css` (cada archivo nuevo se enlaza en `index.html`).
 - Pruebas: Claude no escribe la contraseña y el usuario no ve el panel de navegador de la app. Para probar vistas con sesión en local existe `.claude/dev-harness.js` (no se sube al repo; si falta, hay que recrearlo): simula PostgREST en memoria (`db`, `calls`, `rpc`) y monta el shell. Uso desde la consola de `http://localhost:8080/index.html`: `const hx = await import('/.claude/dev-harness.js'); window.hx = hx; await hx.mount('#/catalogos')`. Para tablas o RPC nuevos, agrega datos a `hx.db` / `hx.rpc`. La prueba con datos reales la hace el usuario en Pages.
+
+### Historial (bloque 7)
+
+- `search_tickets(p)` recibe `{ from, to, store_id, payment_method_id, category_id, text, limit, offset }` (todo opcional; cadena vacía = sin filtro) y devuelve `{ count, total, rows }`. `category_id` de una categoría principal incluye sus subcategorías; `text` busca sin acentos en artículos, tienda y nota. Cada fila trae `stores`, `payment_methods`, `ticket_items(name)` y `msi_plans(months)`.
+- `data/tickets.js`: `listTickets(filtros)` ahora llama a `search_tickets` y devuelve `{ count, total, rows }` (lo usan Inicio e Historial; el Calendario puede usarlo con `from = to = día`). También exporta `itemAmount(item)` y `ticketTotals(ticket)` → `{ subtotal, total }`.
+- `data/products.js`: `listProducts()` (todas las columnas de `v_product_stats`, solo con compras), `getProductHistory(id)` (de `v_item_history`, por fecha).
+- `views/ticket-detail.js`: `openTicketDetail(id)`; `ui/ticket-row.js`: `ticketRow(ticket, onOpen)` ahora es un botón que llama `onOpen(id)`.
+- `ui/chart.js`: única entrada de Chart.js (`chart.js@4.5.1/auto`). `lineChart({ label, points: [{ x, y }], formatX, formatY })` → `{ element, destroy }` (eje X lineal con tiempos; una serie en color de acento, sin leyenda). Las gráficas siguientes (dona, barras, tendencia) van en este módulo y deben seguir la guía de la skill `dataviz` (una serie = un color, texto en tokens de texto, rejilla fina, tabla equivalente a la vista). Hay que destruir la gráfica al cerrar la vista o la ventana.
+- `ui/category-select.js`: `categorySelect(arbol, valor, { fallback, placeholder, required })`. `core/format.js`: `dateToTime`, `timeToISO`.
+- CSS nuevo en `components.css`: `meter`, `detail`, `mini-stats`, `chart`, `table`, `tag--good`, `button.list__item`; `views/history.css` (`filters`).
+- Pendiente a futuro: ocultar, renombrar o fusionar productos (hoy solo se listan los que tienen compras).
+- El arnés simula `search_tickets` y `v_item_history`.
 
 ### PWA y offline (bloque 6)
 

@@ -7,6 +7,7 @@ import { listPendingTickets, listTickets } from '../data/tickets.js';
 import { createMonthNav } from '../ui/month-nav.js';
 import { ticketRow } from '../ui/ticket-row.js';
 import { toast } from '../ui/toast.js';
+import { openTicketDetail } from './ticket-detail.js';
 
 function stat(label, value, hint, featured = false) {
   return h('article', { class: featured ? 'stat stat--featured' : 'stat' },
@@ -44,9 +45,9 @@ export default function home(root) {
         stat('Por pagar', summary.obligations_pending, `Pagado ${money(summary.obligations_paid)}`),
         stat('Presupuesto del mes', summary.total_budget, `Asignado ${money(summary.budgeted)}`),
       );
-      const rows = [...pending, ...recent];
+      const rows = [...pending, ...recent.rows];
       tickets.replaceChildren(...(rows.length
-        ? rows.map(ticketRow)
+        ? rows.map((ticket) => ticketRow(ticket, openTicketDetail))
         : [h('p', { class: 'list__empty' }, 'Todavía no hay tickets en este mes.')]));
     } catch (error) {
       toast(`No se pudo cargar el resumen: ${error.message}`, 'error');
