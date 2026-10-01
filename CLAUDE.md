@@ -205,6 +205,7 @@ Pídeselos al usuario al iniciar el bloque 2, en este orden:
 - `ui/shell.js`: `setStatus(estado)` pinta el indicador (`.chip`). CSS nuevo: `chip`, `tag--warning`, tokens `--warning`/`--warning-soft`.
 - El arnés tiene `hx.setOnline(false|true)` para simular la conexión; un RPC simulado que lanza error responde 400.
 - Los iconos PNG se generaron con System.Drawing desde PowerShell (misma figura que `icon.svg`).
+- Si tras un push la publicación de Pages se queda en cola más de unos minutos (`gh run list --repo Souls-Nao/gastos-casa`), cancélala con `gh run cancel <id>` y pide otra con `gh api -X POST repos/Souls-Nao/gastos-casa/pages/builds`. Para esperar, sondea la URL publicada con un bucle en Bash.
 
 ### Captura de tickets (bloque 5)
 
