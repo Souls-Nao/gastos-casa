@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <title>Gastos de Casa</title>
+  <link rel="stylesheet" href="css/base.css">
+</head>
+<body>
+  <main class="card">
+    <h1>Gastos de Casa</h1>
+    <p id="status" class="status" role="status" data-tone="info">Conectando…</p>
+    <form id="login" hidden>
+      <label>Correo
+        <input id="email" type="email" autocomplete="username" required>
+      </label>
+      <label>Contraseña
+        <input id="password" type="password" autocomplete="current-password" required>
+      </label>
+      <button type="submit">Entrar</button>
+    </form>
+    <section id="session" hidden>
+      <dl id="checks"></dl>
+      <button id="logout" type="button">Cerrar sesión</button>
+    </section>
+  </main>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
