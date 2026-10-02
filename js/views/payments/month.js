@@ -126,7 +126,7 @@ export default function month(root) {
             iconButton('trash-2', 'Eliminar este pago', async () => {
               const consequence = payment.ticket_id
                 ? 'También se borra el gasto que generó en el historial.'
-                : 'El disponible del mes subirá por ese monto.';
+                : 'Tu disponible subirá por ese monto.';
               if (!await confirmRemoval(`Pago de ${money(payment.amount)}`, consequence)) return;
               try {
                 await undoPayment(payment.id);

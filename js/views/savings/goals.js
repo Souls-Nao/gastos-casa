@@ -48,7 +48,7 @@ export default function goals(root) {
           : `Tienes ${money(goal.saved)} guardados en esta meta.`),
         field('Fecha', date),
         field('Nota', note, 'Opcional.'),
-        h('p', { class: 'field__hint' }, sign > 0 ? 'Lo que guardas baja tu disponible del mes.' : 'Lo que retiras regresa a tu disponible del mes.'),
+        h('p', { class: 'field__hint' }, sign > 0 ? 'Lo que guardas se aparta de tu disponible; el dinero sigue en tu efectivo o tarjeta.' : 'Lo que retiras regresa a tu disponible.'),
       ],
       async onSubmit() {
         await addGoalMovement({
@@ -100,7 +100,7 @@ export default function goals(root) {
               h('span', { class: 'row__subtitle' }, movement.note ?? (movement.amount > 0 ? 'Depósito' : 'Retiro'))),
             h('strong', { class: 'money' }, `${movement.amount > 0 ? '+' : '−'}${money(Math.abs(movement.amount))}`),
             iconButton('trash-2', 'Eliminar este movimiento', async () => {
-              if (!await confirmRemoval(`Movimiento de ${money(Math.abs(movement.amount))}`, 'Cambiará lo ahorrado en la meta y el disponible de ese mes.')) return;
+              if (!await confirmRemoval(`Movimiento de ${money(Math.abs(movement.amount))}`, 'Cambiará lo ahorrado en la meta y tu disponible.')) return;
               try {
                 await deleteGoalMovement(movement.id);
                 modal.close();

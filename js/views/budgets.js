@@ -16,7 +16,7 @@ import { toast } from '../ui/toast.js';
 import { ruleCard } from './budgets-rule.js';
 
 const EMPTY = { budget: null, q1_budget: null, spent: 0, spent_q1: 0, previous: 0, average: 0 };
-const DEFAULT_PLAN = { total_budget: 0, opening_balance: 0, split_mode: 'month' };
+const DEFAULT_PLAN = { total_budget: 0, split_mode: 'month' };
 
 function moneyInput(value) {
   return textInput({ type: 'number', inputMode: 'decimal', min: '0', step: '0.01', placeholder: '0.00', value: value || '' });
@@ -59,7 +59,6 @@ export default function budgets(root) {
 
   function editPlan(assigned) {
     const total = moneyInput(plan.total_budget);
-    const opening = textInput({ type: 'number', inputMode: 'decimal', step: '0.01', placeholder: '0.00', value: plan.opening_balance || '' });
     const mode = selectInput([
       { value: 'month', label: 'Todo el mes' },
       { value: 'biweekly', label: 'Por quincenas' },
@@ -68,13 +67,11 @@ export default function budgets(root) {
       title: `Plan de ${monthLabel(getState().month).toLowerCase()}`,
       body: [
         field('Total a usar en el mes', total, `Las categorías tienen asignado ${money(assigned)}.`),
-        field('Saldo inicial', opening, 'Dinero con el que empiezas el mes. Se suma al disponible.'),
         field('Ver los presupuestos', mode, 'Por quincenas separa cada presupuesto en días 1 al 15 y 16 a fin de mes.'),
       ],
       async onSubmit() {
         await saveMonthPlan(getState().month, {
           total_budget: Number(total.value) || 0,
-          opening_balance: Number(opening.value) || 0,
           split_mode: mode.value,
         });
         await load(getState().month);
@@ -189,7 +186,7 @@ export default function budgets(root) {
         h('div', { class: 'mini-stats plan__stats' },
           h('div', { class: 'mini-stat' }, h('span', { class: 'mini-stat__label' }, 'Total a usar'), h('strong', { class: 'money' }, money(plan.total_budget))),
           h('div', { class: 'mini-stat' }, h('span', { class: 'mini-stat__label' }, 'Asignado a categorías'), h('strong', { class: 'money' }, money(assigned))),
-          h('div', { class: 'mini-stat' }, h('span', { class: 'mini-stat__label' }, 'Saldo inicial'), h('strong', { class: 'money' }, money(plan.opening_balance))),
+          h('div', { class: 'mini-stat' }, h('span', { class: 'mini-stat__label' }, 'Ingresos del mes'), h('strong', { class: 'money' }, money(summary.incomes))),
           h('div', { class: 'mini-stat' }, h('span', { class: 'mini-stat__label' }, 'Presupuestos'), h('strong', null, biweekly() ? 'Por quincenas' : 'Todo el mes'))),
         h('span', { class: 'row__title' }, statusTag(spent, plan.total_budget), h('span', { class: 'money' }, amountsText(spent, plan.total_budget))),
         budgetBars({

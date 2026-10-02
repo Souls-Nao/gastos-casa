@@ -4,13 +4,16 @@ import { money, monthEnd, monthLabel, monthStart, todayISO, wholeMoney } from '.
 import { getBudgetOverview } from '../../data/budgets.js';
 import { listCategories } from '../../data/categories.js';
 import { getTrend } from '../../data/dashboard.js';
+import { MOVE_KINDS, getMoneyOverview } from '../../data/money.js';
 import { getMonthSummary } from '../../data/months.js';
 import { listObligations } from '../../data/payments.js';
 import { listProducts } from '../../data/products.js';
-import { listGoals, listOpenMonths, listReserveMovements } from '../../data/savings.js';
+import { listOpenMonths } from '../../data/savings.js';
 import { trendChart } from '../../ui/chart.js';
+import { icon } from '../../ui/icon.js';
 import { deltaBadge, statTile } from '../../ui/stat.js';
 import { toast } from '../../ui/toast.js';
+import { moneyTiles, openTransfer } from '../money-parts.js';
 import { buildAlerts } from './alerts.js';
 
 const MONTHS = 12;
@@ -29,9 +32,9 @@ export default function general(root) {
     const today = todayISO();
     const month = monthStart(today);
     try {
-      const [summary, overview, categories, obligations, openMonths, history, products, goals, reserve] = await Promise.all([
+      const [summary, overview, categories, obligations, openMonths, history, products, wallet] = await Promise.all([
         getMonthSummary(month), getBudgetOverview(month), listCategories(), listObligations(month), listOpenMonths(),
-        getTrend(MONTHS), listProducts(), listGoals(), listReserveMovements(),
+        getTrend(MONTHS), listProducts(), getMoneyOverview(),
       ]);
       const day = Number(today.slice(8, 10));
       const days = Number(monthEnd(month).slice(8, 10));
@@ -40,7 +43,7 @@ export default function general(root) {
       const previous = history.at(-2)?.spent ?? 0;
       const firstUsed = history.findIndex((entry) => entry.spent || entry.incomes);
       const trend = history.slice(Math.max(Math.min(firstUsed < 0 ? MONTHS : firstUsed, MONTHS - MIN_MONTHS), 0));
-      const alerts = buildAlerts({ today, plan, projected, overview, categories, obligations, openMonths });
+      const alerts = buildAlerts({ today, plan, projected, overview, categories, obligations, openMonths, wallet });
       const top = products.slice(0, 5);
       const most = Math.max(...top.map((product) => product.times_bought), 1);
 
@@ -57,14 +60,21 @@ export default function general(root) {
       });
 
       content.replaceChildren(
+        h('div', { class: 'plan__header' },
+          h('h2', { class: 'section-title' }, 'Tu dinero'),
+          h('div', { class: 'toolbar' },
+            h('a', { class: 'btn btn--ghost', href: '#/dinero' }, 'Ver detalle'),
+            h('button', { class: 'btn btn--ghost', type: 'button', onclick: () => openTransfer('withdrawal', wallet, load) },
+              icon(MOVE_KINDS.withdrawal.icon, 18), 'Retiro de cajero'))),
+        h('section', { class: 'stats stats--money' }, moneyTiles(wallet)),
         h('h2', { class: 'section-title' }, monthLabel(month)),
         h('section', { class: 'stats' },
-          statTile({ label: 'Disponible', value: money(summary.available), hint: `Libre después de compromisos: ${money(summary.free_after_commitments)}`, featured: true }),
           statTile({
             label: 'Gastado en el mes',
             value: money(summary.spent),
             hint: previous ? [deltaBadge(summary.spent, previous), ` vs. ${money(previous)} del mes anterior`] : `${summary.tickets} tickets`,
           }),
+          statTile({ label: 'Ingresos del mes', value: money(summary.incomes), hint: 'Lo recibido en efectivo y en tarjeta' }),
           statTile({
             label: 'Presupuesto restante',
             value: plan ? money(plan - summary.spent) : '—',
@@ -74,7 +84,7 @@ export default function general(root) {
           statTile({
             label: 'Ahorrado este mes',
             value: money(summary.savings_in),
-            hint: `En metas ${money(goals.reduce((sum, goal) => sum + goal.saved, 0))} · reserva ${money(reserve.reduce((sum, movement) => sum + movement.amount, 0))}`,
+            hint: `En metas ${money(wallet.savings)} · reserva ${money(wallet.reserve)}`,
           }),
           statTile(projected == null
             ? { label: 'Proyección de fin de mes', value: '—', hint: `Se calcula a partir del día ${FIRST_PROJECTION_DAY} del mes` }

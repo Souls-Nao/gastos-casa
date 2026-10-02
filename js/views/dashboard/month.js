@@ -83,7 +83,11 @@ export default function month(root) {
             featured: true,
           }),
           statTile({ label: 'Ingresos', value: money(summary.incomes), hint: 'Recibido en el mes' }),
-          statTile({ label: 'Disponible', value: money(summary.available), hint: `Libre después de compromisos: ${money(summary.free_after_commitments)}` }),
+          statTile({
+            label: 'Balance del mes',
+            value: money(summary.available),
+            hint: summary.closed_at ? 'Mes cerrado: lo que sobró pasó a la Reserva' : 'Lo que entró menos lo que salió',
+          }),
           statTile({ label: 'Por pagar', value: money(summary.obligations_pending), hint: `Pagado ${money(summary.obligations_paid)}` })),
         h('section', { class: 'card donut' },
           h('h2', { class: 'section-title' }, 'En qué se fue el dinero'),

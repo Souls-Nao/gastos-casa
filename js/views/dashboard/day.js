@@ -42,7 +42,7 @@ export default function day(root, query) {
               value: money(Math.max(plan - summary.spent, 0) / left),
               hint: `Quedan ${money(Math.max(plan - summary.spent, 0))} del plan y ${left === 1 ? '1 día' : `${left} días`}`,
             }
-            : { label: 'Disponible del mes', value: money(summary.available), hint: 'Lo que queda en el mes de este día' })),
+            : { label: 'Balance del mes', value: money(summary.available), hint: 'Lo que entró menos lo que salió en el mes de este día' })),
         ...rest);
     } catch (error) {
       toast(`No se pudo cargar el día: ${error.message}`, 'error');

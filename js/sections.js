@@ -7,6 +7,7 @@ export const sections = [
   { path: '/historial', label: 'Historial', icon: 'receipt-text', view: () => import('./views/history.js') },
   { path: '/calendario', label: 'Calendario', icon: 'calendar-days', tab: 2, view: () => import('./views/calendar.js') },
   { path: '/ingresos', label: 'Ingresos', icon: 'wallet', view: () => import('./views/incomes.js') },
+  { path: '/dinero', label: 'Efectivo y tarjeta', icon: 'banknote', view: () => import('./views/money.js') },
   { path: '/presupuestos', label: 'Presupuestos', icon: 'chart-pie', view: () => import('./views/budgets.js') },
   { path: '/pagos', label: 'Pagos del mes', icon: 'credit-card', view: () => import('./views/payments.js') },
   { path: '/ahorro', label: 'Ahorro y reserva', icon: 'piggy-bank', view: () => import('./views/savings.js') },

@@ -1,5 +1,6 @@
 import { formatDate } from '../core/format.js';
 import { rpc } from '../core/supabase.js';
+import { MOVE_KINDS, POCKETS, moveKind } from './money.js';
 import { OBLIGATION_KINDS } from './payments.js';
 
 const time = (value) => value?.slice(0, 5) ?? '';
@@ -35,6 +36,14 @@ export async function exportSheets(from, to) {
       rows: [
         ['Fecha', 'Tipo', 'Meta', 'Monto', 'Nota'],
         ...data.savings.map((row) => [formatDate(row.date), row.kind === 'goal' ? 'Meta de ahorro' : 'Reserva', row.name, row.amount, row.note]),
+      ],
+    },
+    {
+      name: 'Efectivo y tarjeta',
+      rows: [
+        ['Fecha', 'Movimiento', 'Sale de', 'Entra a', 'Monto', 'Nota'],
+        ...data.moves.map((row) => [formatDate(row.date), MOVE_KINDS[moveKind(row)].label, POCKETS[row.from_pocket]?.label,
+          POCKETS[row.to_pocket]?.label, row.amount, row.note]),
       ],
     },
   ];

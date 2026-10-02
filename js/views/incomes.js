@@ -42,12 +42,11 @@ export default function incomes(root) {
         .map((row) => ({ value: row.id, label: row.name })),
       income?.category_id ?? categories.find((row) => row.kind === 'income' && !row.hidden)?.id,
       { required: true });
-    const method = selectInput([
-      { value: '', label: 'Sin especificar' },
-      ...methods
-        .filter((row) => (row.type !== 'credit' && !row.hidden) || row.id === income?.payment_method_id)
-        .map((row) => ({ value: row.id, label: row.name })),
-    ], income?.payment_method_id);
+    const allowed = methods.filter((row) => (row.type !== 'credit' && !row.hidden) || row.id === income?.payment_method_id);
+    const method = selectInput(
+      allowed.map((row) => ({ value: row.id, label: row.name })),
+      income ? income.payment_method_id : (allowed.find((row) => row.type === 'debit') ?? allowed[0])?.id,
+      { required: true });
     const description = textInput({ maxLength: 80, placeholder: 'Quincena, venta, apoyo…', value: income?.description ?? '' });
 
     openFormModal({
@@ -55,7 +54,7 @@ export default function incomes(root) {
       body: [
         field('Monto', amount),
         h('div', { class: 'form__pair' }, field('Fecha', date), field('Categoría', category)),
-        field('Recibido en', method),
+        field('Recibido en', method, 'Suma al efectivo o a la tarjeta, según dónde lo recibiste.'),
         field('Descripción', description, 'Opcional.'),
       ],
       async onSubmit() {
@@ -76,7 +75,7 @@ export default function incomes(root) {
         label: 'Eliminar ingreso',
         async run() {
           const name = income.description ?? categoryOf(income).name;
-          if (!await confirmRemoval(name, `El disponible del mes bajará ${money(income.amount)}.`)) return false;
+          if (!await confirmRemoval(name, `Tu disponible bajará ${money(income.amount)}.`)) return false;
           await deleteIncome(income.id);
           await load(getState().month);
           return true;

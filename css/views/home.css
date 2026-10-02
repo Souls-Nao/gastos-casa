@@ -23,6 +23,10 @@
   color: var(--on-accent);
 }
 
+.stats--money > .stat:last-child {
+  grid-column: 1 / -1;
+}
+
 .stat__label {
   color: var(--muted);
   font-size: var(--text-s);
@@ -206,7 +210,12 @@
     gap: var(--space-4);
   }
 
-  .stat--featured {
+  .stats--money {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .stat--featured,
+  .stats--money > .stat:last-child {
     grid-column: auto;
   }
 

@@ -30,7 +30,7 @@ export default function reserve(root) {
       title: sign > 0 ? 'Guardar en la reserva' : 'Usar de la reserva',
       submitLabel: sign > 0 ? 'Guardar' : 'Usar',
       body: [
-        field('Monto', amount, sign > 0 ? 'Baja tu disponible del mes.' : `Regresa a tu disponible del mes. La reserva tiene ${money(balance)}.`),
+        field('Monto', amount, sign > 0 ? 'Se aparta de tu disponible; el dinero sigue en tu efectivo o tarjeta.' : `Regresa a tu disponible. La reserva tiene ${money(balance)}.`),
         field('Fecha', date),
         field('Nota', note, 'Opcional.'),
       ],
@@ -77,7 +77,7 @@ export default function reserve(root) {
           if (confirmed) await act(() => reopenMonth(movement.month));
         })
         : iconButton('trash-2', 'Eliminar este movimiento', async () => {
-          if (await confirmRemoval(`Movimiento de ${money(Math.abs(movement.amount))}`, 'Cambiará el saldo de la reserva y el disponible de ese mes.')) {
+          if (await confirmRemoval(`Movimiento de ${money(Math.abs(movement.amount))}`, 'Cambiará el saldo de la reserva y tu disponible.')) {
             await act(() => deleteReserveMovement(movement.id));
           }
         })));

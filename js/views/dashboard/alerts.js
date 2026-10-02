@@ -8,9 +8,17 @@ function alert(tone, symbol, text, href) {
   return h('a', { class: 'alert', 'data-tone': tone, href }, icon(symbol, 18), h('span', null, text), icon('chevron-right', 16));
 }
 
-export function buildAlerts({ today, plan, projected, overview, categories, obligations, openMonths }) {
+export function buildAlerts({ today, plan, projected, overview, categories, obligations, openMonths, wallet }) {
   const alerts = [];
   const rows = new Map(overview.rows.map((row) => [row.category_id, row]));
+
+  if (wallet.cash < 0) {
+    alerts.push(alert('danger', 'banknote',
+      `El efectivo está en ${money(wallet.cash)}: registra el retiro de cajero que falta o ajusta el saldo.`, '#/dinero'));
+  }
+  if (wallet.bank < 0) {
+    alerts.push(alert('danger', 'credit-card', `La tarjeta está en ${money(wallet.bank)}: revisa y ajusta el saldo.`, '#/dinero'));
+  }
 
   for (const obligation of obligations) {
     const { state, days } = dueState(obligation, today);
