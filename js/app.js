@@ -3,7 +3,7 @@ import { h } from './core/dom.js';
 import { on } from './core/events.js';
 import { formatDate, monthStart, todayISO } from './core/format.js';
 import { clearOffline } from './core/offline.js';
-import { cacheLoadedFiles, registerServiceWorker } from './core/pwa.js';
+import { applyUpdate, cacheLoadedFiles, registerServiceWorker, updateAvailable } from './core/pwa.js';
 import { startRouter, stopRouter } from './core/router.js';
 import { setState } from './core/store.js';
 import { seedDefaults } from './data/account.js';
@@ -20,9 +20,14 @@ import { createShell } from './ui/shell.js';
 import { toast } from './ui/toast.js';
 import login from './views/login.js';
 
+const UPDATE_DELAY = 2000;
 const app = document.getElementById('app');
 let currentUserId;
 let shell = null;
+
+async function refreshIfOutdated() {
+  if (await updateAvailable() && !document.querySelector('dialog[open]') && !location.hash.startsWith('#/ticket')) applyUpdate();
+}
 
 async function prepareOffline() {
   await Promise.allSettled([
@@ -47,7 +52,10 @@ async function enter(user) {
   startRouter({
     routes: sections,
     outlet: shell.outlet,
-    onNavigate: shell.setActive,
+    onNavigate(section) {
+      shell.setActive(section);
+      setTimeout(refreshIfOutdated, UPDATE_DELAY);
+    },
     onError(error, root) {
       root.replaceChildren(h('p', { class: 'list__empty' }, 'No se pudo abrir esta sección.'));
       toast(error.message, 'error');
@@ -99,4 +107,9 @@ on('auth:logout', async () => {
   }
 });
 
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) refreshIfOutdated();
+});
+
 registerServiceWorker();
+refreshIfOutdated();
