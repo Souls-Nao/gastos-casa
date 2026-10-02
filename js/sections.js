@@ -5,6 +5,7 @@ export const sections = [
   { path: '/ticket', label: 'Nuevo ticket', short: 'Ticket', icon: 'plus', tab: 3, primary: true, view: ticket },
   { path: '/ticket/:id', label: 'Editar ticket', icon: 'receipt-text', parent: '/ticket', hidden: true, view: ticket },
   { path: '/historial', label: 'Historial', icon: 'receipt-text', view: () => import('./views/history.js') },
+  { path: '/productos', label: 'Productos', icon: 'package', view: () => import('./views/products.js') },
   { path: '/calendario', label: 'Calendario', icon: 'calendar-days', tab: 2, view: () => import('./views/calendar.js') },
   { path: '/ingresos', label: 'Ingresos', icon: 'wallet', view: () => import('./views/incomes.js') },
   { path: '/dinero', label: 'Efectivo y tarjeta', icon: 'banknote', view: () => import('./views/money.js') },

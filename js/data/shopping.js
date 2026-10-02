@@ -2,13 +2,14 @@ import { cachedRead, isNetworkError, withTimeout } from '../core/offline.js';
 import { rpc, supabase, unwrap } from '../core/supabase.js';
 import { deleteRow } from './crud.js';
 import { dropPending, enqueue, pendingOperations } from './sync.js';
+import { itemAmount } from './units.js';
 
 const pendingKey = (id) => `list:${id}`;
 
 export async function listShoppingLists() {
   const [rows, operations] = await Promise.all([
     cachedRead('shopping-lists', async () => unwrap(await supabase.from('shopping_lists')
-      .select('id, name, store_id, status, ticket_id, shopping_list_items(id, name, category_id, quantity, unit, unit_price, checked)')
+      .select('id, name, store_id, status, ticket_id, shopping_list_items(id, name, category_id, quantity, unit, unit_price, price_mode, checked)')
       .eq('status', 'open')
       .order('created_at')
       .order('sort_order', { referencedTable: 'shopping_list_items' }))),
@@ -47,10 +48,9 @@ export async function deleteShoppingList(id) {
 }
 
 export function listTotals(list) {
-  const amount = (item) => Math.round((item.quantity || 0) * (item.unit_price || 0) * 100) / 100;
   return {
-    estimated: list.items.reduce((sum, item) => sum + amount(item), 0),
-    inCart: list.items.filter((item) => item.checked).reduce((sum, item) => sum + amount(item), 0),
+    estimated: list.items.reduce((sum, item) => sum + itemAmount(item), 0),
+    inCart: list.items.filter((item) => item.checked).reduce((sum, item) => sum + itemAmount(item), 0),
     checked: list.items.filter((item) => item.checked).length,
   };
 }

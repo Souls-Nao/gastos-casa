@@ -44,7 +44,7 @@ export default function general(root) {
       const firstUsed = history.findIndex((entry) => entry.spent || entry.incomes);
       const trend = history.slice(Math.max(Math.min(firstUsed < 0 ? MONTHS : firstUsed, MONTHS - MIN_MONTHS), 0));
       const alerts = buildAlerts({ today, plan, projected, overview, categories, obligations, openMonths, wallet });
-      const top = products.slice(0, 5);
+      const top = products.filter((product) => product.times_bought).slice(0, 5);
       const most = Math.max(...top.map((product) => product.times_bought), 1);
 
       chart?.destroy();
@@ -121,12 +121,12 @@ export default function general(root) {
         h('section', { class: 'view' },
           h('div', { class: 'plan__header' },
             h('h2', { class: 'section-title' }, 'Productos más comprados'),
-            h('a', { class: 'btn btn--ghost', href: '#/historial?tab=productos' }, 'Ver todos')),
+            h('a', { class: 'btn btn--ghost', href: '#/productos' }, 'Ver todos')),
           h('div', { class: 'list' }, top.length ? top.map((product) => h('div', { class: 'row row--padded' },
             h('div', { class: 'row__text' },
               h('span', { class: 'row__title' }, product.name),
               h('span', { class: 'row__subtitle' },
-                `${product.times_bought === 1 ? '1 compra' : `${product.times_bought} compras`} · último ${money(product.last_price)} / ${product.unit}`),
+                `${product.times_bought === 1 ? '1 compra' : `${product.times_bought} compras`} · último ${money(product.last_price)} / ${product.ref_unit}`),
               h('span', { class: 'meter' }, h('span', { class: 'meter__fill', style: `width:${product.times_bought / most * 100}%` }))),
             h('strong', { class: 'money' }, money(product.total_spent))))
             : h('p', { class: 'list__empty' }, 'Aquí aparecerán los productos que más compras.'))));

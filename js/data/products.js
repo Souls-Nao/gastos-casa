@@ -1,19 +1,42 @@
 import { cachedRead } from '../core/offline.js';
 import { supabase, unwrap } from '../core/supabase.js';
+import { deleteRow, insertRow, updateRow } from './crud.js';
 
-export function listProducts() {
+export function listAllProducts() {
   return cachedRead('products', async () => unwrap(await supabase.from('v_product_stats')
     .select('*')
-    .eq('hidden', false)
-    .gt('times_bought', 0)
     .order('times_bought', { ascending: false })
     .order('name')));
 }
 
-export function getProductHistory(id) {
-  return cachedRead(`product-history:${id}`, async () => unwrap(await supabase.from('v_item_history')
-    .select('ticket_id, purchased_on, quantity, unit, unit_price, amount, store_id')
+export async function listProducts() {
+  return (await listAllProducts()).filter((product) => !product.hidden);
+}
+
+export function getProductPrices(id) {
+  return cachedRead(`product-prices:${id}`, async () => unwrap(await supabase.from('v_product_prices')
+    .select('id, noted_on, price, unit, store_id, source, quantity, bought_unit, amount, note')
     .eq('product_id', id)
-    .order('purchased_on')
-    .order('purchased_at')));
+    .order('noted_on')
+    .order('created_at')));
+}
+
+export function createProduct(values) {
+  return insertRow('products', values);
+}
+
+export function updateProduct(id, values) {
+  return updateRow('products', id, values);
+}
+
+export function deleteProduct(id) {
+  return deleteRow('products', id);
+}
+
+export function addProductPrice(values) {
+  return insertRow('product_prices', values);
+}
+
+export function deleteProductPrice(id) {
+  return deleteRow('product_prices', id);
 }

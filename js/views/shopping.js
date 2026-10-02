@@ -5,7 +5,7 @@ import { categoryTree, listCategories } from '../data/categories.js';
 import { listProducts } from '../data/products.js';
 import { deleteShoppingList, listShoppingLists, listTotals, saveShoppingList } from '../data/shopping.js';
 import { listStores } from '../data/stores.js';
-import { listUnits } from '../data/units.js';
+import { itemAmount, itemPricing, itemSummary, listUnits, unitRule } from '../data/units.js';
 import { autocomplete } from '../ui/autocomplete.js';
 import { categorySelect } from '../ui/category-select.js';
 import { field, selectInput, textInput } from '../ui/field.js';
@@ -16,14 +16,8 @@ import { toast } from '../ui/toast.js';
 
 const SAVE_DELAY = 600;
 
-function amount(item) {
-  return (item.quantity || 0) * (item.unit_price || 0);
-}
-
 function describe(item) {
-  return item.unit_price == null
-    ? `${item.quantity} ${item.unit} · sin precio`
-    : `${item.quantity} ${item.unit} × ${money(item.unit_price)}`;
+  return item.unit_price == null ? `${itemSummary(item)} · sin precio` : itemSummary(item);
 }
 
 export default async function shopping(root, { query }) {
@@ -82,18 +76,21 @@ export default async function shopping(root, { query }) {
     const product = known ?? catalog.find((entry) => entry.key === key);
     const existing = current.items.find((item) => normalize(item.name) === key);
     if (existing) {
-      existing.quantity += 1;
+      if (existing.price_mode !== 'total') existing.quantity += 1;
       existing.checked = false;
     } else {
-      current.items.push({
+      const item = {
         id: crypto.randomUUID(),
         name: product?.name ?? name.trim(),
         category_id: visible.has(product?.category_id) ? product.category_id : null,
         quantity: 1,
-        unit: product?.unit ?? 'pza',
-        unit_price: product?.last_price ?? null,
+        unit: 'pza',
+        unit_price: null,
+        price_mode: unitRule(units, 'pza').mode,
         checked: false,
-      });
+      };
+      if (product) itemPricing(units, item).useProduct(product);
+      current.items.push(item);
     }
     changed();
     render();
@@ -154,7 +151,10 @@ export default async function shopping(root, { query }) {
         },
         h('div', { class: 'row__text' },
           h('span', { class: 'row__title' }, product.name, inList ? h('span', { class: 'tag tag--good' }, `En la lista: ${inList.quantity}`) : null),
-          h('span', { class: 'row__subtitle' }, `${money(product.last_price)} / ${product.unit} · ${product.times_bought === 1 ? '1 compra' : `${product.times_bought} compras`}`)),
+          h('span', { class: 'row__subtitle' }, [
+            product.last_price == null ? 'Sin precio' : `${money(product.last_price)} / ${product.ref_unit}`,
+            product.times_bought === 1 ? '1 compra' : `${product.times_bought} compras`,
+          ].join(' · '))),
         icon('plus', 20));
       }) : h('p', { class: 'list__empty' }, catalog.length ? 'Ningún producto coincide.' : 'Todavía no hay productos en tu historial.'));
     };
@@ -165,7 +165,7 @@ export default async function shopping(root, { query }) {
 
   function itemRow(item, totals) {
     const subtitle = h('span', { class: 'row__subtitle' }, describe(item));
-    const total = h('strong', { class: 'money' }, item.unit_price == null ? '—' : money(amount(item)));
+    const total = h('strong', { class: 'money' }, item.unit_price == null ? '—' : money(itemAmount(item)));
     const check = h('input', { type: 'checkbox', checked: item.checked, 'aria-label': `Marcar ${item.name}` });
     check.addEventListener('change', () => {
       item.checked = check.checked;
@@ -175,7 +175,7 @@ export default async function shopping(root, { query }) {
 
     function update() {
       subtitle.textContent = describe(item);
-      total.textContent = item.unit_price == null ? '—' : money(amount(item));
+      total.textContent = item.unit_price == null ? '—' : money(itemAmount(item));
       totals();
       changed();
     }
@@ -186,16 +186,30 @@ export default async function shopping(root, { query }) {
       const unit = selectInput([...new Set([...names, item.unit])].map((name) => ({ value: name, label: name })), item.unit);
       const price = textInput({ type: 'number', inputMode: 'decimal', min: '0', step: '0.01', placeholder: '0.00', value: item.unit_price ?? '' });
       const category = categorySelect(tree, visible.has(item.category_id) ? item.category_id : null, { placeholder: 'Sin categoría', required: false });
+      const priceLabel = document.createTextNode('');
+      const pricing = itemPricing(units, item);
+      const relabel = () => {
+        priceLabel.textContent = pricing.rule.mode === 'total' ? 'Costo estimado' : `Precio por ${item.unit}`;
+      };
+      const sync = () => {
+        relabel();
+        price.value = item.unit_price ?? '';
+        update();
+      };
+      relabel();
       quantity.addEventListener('input', () => {
         item.quantity = Number(quantity.value) > 0 ? Number(quantity.value) : 1;
-        update();
+        pricing.quantityChanged();
+        sync();
       });
       unit.addEventListener('change', () => {
         item.unit = unit.value;
-        update();
+        pricing.unitChanged();
+        sync();
       });
       price.addEventListener('input', () => {
         item.unit_price = price.value === '' ? null : Number(price.value);
+        pricing.priceChanged();
         update();
       });
       category.addEventListener('change', () => {
@@ -203,7 +217,7 @@ export default async function shopping(root, { query }) {
         changed();
       });
       return h('div', { class: 'shop-item__editor' },
-        field('Cantidad', quantity), field('Unidad', unit), field('Precio', price),
+        field('Cantidad', quantity), field('Unidad', unit), field(priceLabel, price),
         h('div', { class: 'shop-item__category' }, field('Categoría', category)),
         iconButton('trash-2', 'Quitar de la lista', () => {
           current.items = current.items.filter((other) => other !== item);
@@ -281,7 +295,7 @@ export default async function shopping(root, { query }) {
         search: suggestions,
         render: (product) => [
           h('span', { class: 'autocomplete__name' }, product.name),
-          h('span', { class: 'autocomplete__meta money' }, `${money(product.last_price)} / ${product.unit}`),
+          product.last_price != null ? h('span', { class: 'autocomplete__meta money' }, `${money(product.last_price)} / ${product.ref_unit}`) : null,
         ],
         onSelect: (product) => addItem(product.name, product),
       }),

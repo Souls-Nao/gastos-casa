@@ -5,7 +5,8 @@ import { listCategories } from '../data/categories.js';
 import { listPaymentMethods } from '../data/payment-methods.js';
 import { ticketPhotoUrl } from '../data/photos.js';
 import { listStores } from '../data/stores.js';
-import { getTicket, itemAmount, ticketTotals } from '../data/tickets.js';
+import { getTicket, ticketTotals } from '../data/tickets.js';
+import { itemAmount, itemSummary } from '../data/units.js';
 import { openModal } from '../ui/modal.js';
 import { toast } from '../ui/toast.js';
 
@@ -51,7 +52,7 @@ export async function openTicketDetail(id) {
           h('div', { class: 'row__text' },
             h('span', { class: 'row__title' }, item.name),
             h('span', { class: 'row__subtitle' },
-              `${item.quantity} ${item.unit} × ${money(item.unit_price)} · ${name(categories, item.category_id) ?? 'Sin categoría'}`)),
+              `${itemSummary(item)} · ${name(categories, item.category_id) ?? 'Sin categoría'}`)),
           h('strong', { class: 'money' }, money(itemAmount(item)))))),
       ticket.discount ? [line('Subtotal', money(subtotal)), line('Descuento', `−${money(ticket.discount)}`)] : null,
       line('Total', money(total), true),

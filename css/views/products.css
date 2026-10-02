@@ -1,0 +1,39 @@
+.products__controls {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+}
+
+.product .row__text {
+  gap: 2px;
+}
+
+.product__price {
+  display: grid;
+  flex-shrink: 0;
+  justify-items: end;
+  color: var(--text);
+}
+
+.calc {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+}
+
+.calc__equals {
+  color: var(--muted);
+  font-size: var(--text-s);
+}
+
+.calc__result {
+  font-size: var(--text-l);
+  text-align: right;
+}
+
+@media (min-width: 600px) {
+  .products__controls {
+    grid-template-columns: 2fr 1fr;
+  }
+}

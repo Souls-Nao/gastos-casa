@@ -63,6 +63,7 @@
   grid-area: total;
   gap: var(--space-1);
   justify-items: end;
+  text-align: right;
 }
 
 .ticket-item__amount {
@@ -117,7 +118,7 @@
   }
 
   .ticket-item {
-    grid-template-columns: minmax(0, 2.2fr) 84px 96px 112px minmax(0, 1.6fr) 104px var(--touch);
+    grid-template-columns: minmax(0, 2fr) 84px 96px 124px minmax(0, 1.5fr) 132px var(--touch);
     grid-template-areas: "name quantity unit price category total remove";
   }
 

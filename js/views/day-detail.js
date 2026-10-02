@@ -3,6 +3,7 @@ import { dayLabel, money } from '../core/format.js';
 import { getDayDetail } from '../data/calendar.js';
 import { listCategories } from '../data/categories.js';
 import { categoryBreakdown } from '../data/dashboard.js';
+import { itemSummary } from '../data/units.js';
 import { categoryIcon } from '../ui/category-icon.js';
 import { ticketRow } from '../ui/ticket-row.js';
 import { openTicketDetail } from './ticket-detail.js';
@@ -42,7 +43,7 @@ export async function dayDetail(day) {
         h('div', { class: 'row__text' },
           h('span', { class: 'row__title' }, item.name),
           h('span', { class: 'row__subtitle' },
-            `${item.quantity} ${item.unit} × ${money(item.unit_price)} · ${categories.find((category) => category.id === item.category_id)?.name ?? 'Sin categoría'}`)),
+            `${itemSummary(item)} · ${categories.find((category) => category.id === item.category_id)?.name ?? 'Sin categoría'}`)),
         h('strong', { class: 'money' }, money(item.amount))))),
     ],
   };

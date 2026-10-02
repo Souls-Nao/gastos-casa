@@ -9,8 +9,8 @@ import { ticketPhotoUrl } from '../data/photos.js';
 import { listProducts } from '../data/products.js';
 import { finishShoppingList, itemsToBuy, listShoppingLists } from '../data/shopping.js';
 import { createStore, listStores } from '../data/stores.js';
-import { clearTicketPhoto, deleteTicket, getTicket, itemAmount, saveTicket, saveTicketPhoto, ticketTotals } from '../data/tickets.js';
-import { listUnits } from '../data/units.js';
+import { clearTicketPhoto, deleteTicket, getTicket, saveTicket, saveTicketPhoto, ticketTotals } from '../data/tickets.js';
+import { itemAmount, itemPricing, listUnits, sameUnit, unitRule } from '../data/units.js';
 import { autocomplete } from '../ui/autocomplete.js';
 import { categorySelect } from '../ui/category-select.js';
 import { field, selectInput, textInput } from '../ui/field.js';
@@ -23,10 +23,6 @@ const DRAFT_KEY = 'gastos:ticket-draft';
 const METHOD_KEY = 'gastos:last-payment-method';
 const NEW_STORE = 'new';
 const MSI_MONTHS = [3, 6, 9, 12, 15, 18, 24, 36, 48];
-
-function newItem() {
-  return { id: crypto.randomUUID(), name: '', category_id: null, quantity: 1, unit: 'pza', unit_price: null };
-}
 
 function isBlank(item) {
   return !item.name.trim() && item.unit_price == null;
@@ -60,6 +56,10 @@ export default async function ticket(root, { params, query }) {
   let restored = false;
   let state;
 
+  function newItem() {
+    return { id: crypto.randomUUID(), name: '', category_id: null, quantity: 1, unit: 'pza', unit_price: null, price_mode: unitRule(units, 'pza').mode };
+  }
+
   if (editing) {
     state = await getTicket(params.id);
   } else if (repeatId) {
@@ -90,7 +90,7 @@ export default async function ticket(root, { params, query }) {
       note: '',
       photo_path: null,
       items: bought.length
-        ? bought.map(({ name, category_id, quantity, unit, unit_price }) => ({ id: crypto.randomUUID(), name, category_id, quantity, unit, unit_price }))
+        ? bought.map(({ name, category_id, quantity, unit, unit_price, price_mode }) => ({ id: crypto.randomUUID(), name, category_id, quantity, unit, unit_price, price_mode }))
         : [newItem()],
       msi: null,
     };
@@ -148,11 +148,25 @@ export default async function ticket(root, { params, query }) {
     const unit = selectInput(unitOptions(item.unit), item.unit);
     const price = textInput({ type: 'number', inputMode: 'decimal', min: '0', step: '0.01', required: true, placeholder: '0.00', value: item.unit_price ?? '' });
     const category = categorySelect(tree, item.category_id, { fallback: categoryFallback(item.category_id) });
-    const amount = h('strong', { class: 'ticket-item__amount money' }, money(itemAmount(item)));
+    const amount = h('strong', { class: 'ticket-item__amount money' });
+    const priceLabel = document.createTextNode('');
+    const amountLabel = h('span', { class: 'field__label' });
+    const pricing = itemPricing(units, item);
 
     function update() {
+      const { rule, rate } = pricing;
+      const total = rule.mode === 'total';
+      priceLabel.textContent = total ? 'Total pagado' : `Precio por ${item.unit}`;
+      amountLabel.textContent = rate != null && (total || !sameUnit(rule.base, item.unit))
+        ? `Importe · ${money(rate)} por ${rule.base}`
+        : 'Importe';
       amount.textContent = money(itemAmount(item));
       refresh();
+    }
+
+    function syncPrice() {
+      price.value = item.unit_price ?? '';
+      update();
     }
 
     function applyProduct(product) {
@@ -163,15 +177,13 @@ export default async function ticket(root, { params, query }) {
         category.value = product.category_id;
       }
       if (![...unit.options].some((option) => option.value === product.unit)) unit.append(h('option', { value: product.unit }, product.unit));
-      item.unit = product.unit;
-      unit.value = product.unit;
-      if (product.last_price != null) {
-        item.unit_price = Number(product.last_price);
-        price.value = item.unit_price;
-      }
-      update();
-      price.focus();
-      price.select();
+      pricing.useProduct(product);
+      unit.value = item.unit;
+      quantity.value = item.quantity ?? '';
+      syncPrice();
+      const next = pricing.rule.mode === 'total' ? quantity : price;
+      next.focus();
+      next.select();
     }
 
     name.addEventListener('input', () => {
@@ -184,14 +196,17 @@ export default async function ticket(root, { params, query }) {
     });
     quantity.addEventListener('input', () => {
       item.quantity = numberOrNull(quantity.value);
-      update();
+      pricing.quantityChanged();
+      syncPrice();
     });
     unit.addEventListener('change', () => {
       item.unit = unit.value;
-      refresh();
+      pricing.unitChanged();
+      syncPrice();
     });
     price.addEventListener('input', () => {
       item.unit_price = numberOrNull(price.value);
+      pricing.priceChanged();
       update();
     });
     category.addEventListener('change', () => {
@@ -205,7 +220,7 @@ export default async function ticket(root, { params, query }) {
           search: suggestions,
           render: (product) => [
             h('span', { class: 'autocomplete__name' }, product.name),
-            product.last_price != null ? h('span', { class: 'autocomplete__meta money' }, `${money(product.last_price)} / ${product.unit}`) : null,
+            product.last_price != null ? h('span', { class: 'autocomplete__meta money' }, `${money(product.last_price)} / ${product.ref_unit}`) : null,
           ],
           onSelect: applyProduct,
         }))),
@@ -218,10 +233,11 @@ export default async function ticket(root, { params, query }) {
         })),
       h('div', { class: 'ticket-item__quantity' }, field('Cantidad', quantity)),
       h('div', { class: 'ticket-item__unit' }, field('Unidad', unit)),
-      h('div', { class: 'ticket-item__price' }, field('Precio', price)),
+      h('div', { class: 'ticket-item__price' }, field(priceLabel, price)),
       h('div', { class: 'ticket-item__category' }, field('Categoría', category)),
-      h('div', { class: 'ticket-item__total' }, h('span', { class: 'field__label' }, 'Importe'), amount));
+      h('div', { class: 'ticket-item__total' }, amountLabel, amount));
     row.focusName = () => name.focus();
+    update();
     return row;
   }
 

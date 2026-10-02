@@ -6,13 +6,10 @@ import { listPaymentMethods } from './payment-methods.js';
 import { deleteTicketWithPhoto, removeTicketPhoto, uploadTicketPhoto } from './photos.js';
 import { listStores } from './stores.js';
 import { dropPending, enqueue, pendingOperations } from './sync.js';
+import { itemAmount } from './units.js';
 
 const pendingKey = (id) => `ticket:${id}`;
 const photoKey = (id) => `photo:${id}`;
-
-export function itemAmount(item) {
-  return Math.round(((item.quantity || 0) * (item.unit_price || 0) + Number.EPSILON) * 100) / 100;
-}
 
 export function ticketTotals(ticket) {
   const subtotal = ticket.items.reduce((sum, item) => sum + itemAmount(item), 0);
@@ -23,7 +20,7 @@ export async function getTicket(id) {
   const pending = (await pendingOperations()).find((operation) => operation.key === pendingKey(id) && operation.type === 'save_ticket');
   if (pending) return pending.payload;
   const record = await cachedRead(`ticket:${id}`, async () => unwrap(await supabase.from('tickets')
-    .select('id, purchased_on, purchased_at, store_id, payment_method_id, discount, note, photo_path, ticket_items(id, name, category_id, quantity, unit, unit_price), msi_plans(months, first_month)')
+    .select('id, purchased_on, purchased_at, store_id, payment_method_id, discount, note, photo_path, ticket_items(id, name, category_id, quantity, unit, unit_price, price_mode), msi_plans(months, first_month)')
     .eq('id', id)
     .order('sort_order', { referencedTable: 'ticket_items' })
     .single()));

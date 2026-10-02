@@ -48,22 +48,6 @@
   justify-self: center;
 }
 
-.products__controls {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-3);
-}
-
-.product .row__text {
-  gap: 2px;
-}
-
-@media (min-width: 600px) {
-  .products__controls {
-    grid-template-columns: 2fr 1fr;
-  }
-}
-
 @media (min-width: 900px) {
   .filters__form {
     grid-template-columns: repeat(3, 1fr);
